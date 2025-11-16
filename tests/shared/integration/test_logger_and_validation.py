@@ -9,6 +9,7 @@ import logging
 from io import StringIO
 
 import pytest
+
 from src.shared.exceptions.validation_error import ValidationError
 from src.shared.infrastructure.logger import get_logger
 from src.shared.utils.validation import validate_email
@@ -30,7 +31,7 @@ class TestLoggerAndValidationIntegration:
         test_output = StringIO()
         handler = logging.StreamHandler(test_output)
         handler.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(levelname)s - %(message)s')
+        formatter = logging.Formatter("%(levelname)s - %(message)s")
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
@@ -60,7 +61,7 @@ class TestLoggerAndValidationIntegration:
         test_output = StringIO()
         handler = logging.StreamHandler(test_output)
         handler.setLevel(logging.ERROR)
-        formatter = logging.Formatter('%(levelname)s - %(message)s')
+        formatter = logging.Formatter("%(levelname)s - %(message)s")
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
@@ -94,7 +95,7 @@ class TestLoggerAndValidationIntegration:
         test_output = StringIO()
         handler = logging.StreamHandler(test_output)
         handler.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(levelname)s - %(message)s')
+        formatter = logging.Formatter("%(levelname)s - %(message)s")
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
@@ -122,4 +123,3 @@ class TestLoggerAndValidationIntegration:
         assert "Validating email" in output
         assert "is valid" in output
         assert "is invalid" in output
-

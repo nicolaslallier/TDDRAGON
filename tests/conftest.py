@@ -4,8 +4,10 @@ Pytest configuration and shared fixtures.
 This file contains fixtures and configuration that are available to all tests.
 """
 
+from collections.abc import Generator
+
 import pytest
-from typing import Generator
+
 from src.shared.infrastructure.logger import get_logger
 
 
@@ -59,4 +61,3 @@ def sample_data_dict() -> dict[str, str]:
         "email": "test@example.com",
         "status": "active",
     }
-

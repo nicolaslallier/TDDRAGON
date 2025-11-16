@@ -6,11 +6,9 @@ classes, ensuring the integration between shared components.
 """
 
 import pytest
-from src.shared.utils.validation import (
-    validate_email,
-    validate_not_empty,
-)
+
 from src.shared.exceptions.validation_error import ValidationError
+from src.shared.utils.validation import validate_email, validate_not_empty
 
 
 class TestValidationWithExceptions:
@@ -114,10 +112,7 @@ class TestValidationWithExceptions:
         # Verify exception can be raised with appropriate message
         with pytest.raises(ValidationError) as exc_info:
             if not is_valid:
-                raise ValidationError(
-                    f"Email validation failed for: {invalid_email}"
-                )
+                raise ValidationError(f"Email validation failed for: {invalid_email}")
 
         assert "Email validation failed" in str(exc_info.value)
         assert invalid_email in str(exc_info.value)
-

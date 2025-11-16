@@ -6,6 +6,7 @@ do not reoccur. Each test documents a specific bug that was fixed.
 """
 
 import pytest
+
 from src.shared.utils.validation import validate_email, validate_not_empty
 
 
@@ -119,3 +120,53 @@ class TestValidationRegression:
         # Assert
         assert result is True
 
+    @pytest.mark.regression
+    def test_validate_not_empty_handles_none(self) -> None:
+        """
+        Regression test: Ensure None returns False.
+
+        Bug: Previously, None could cause errors.
+        Fix: Added explicit None check.
+        """
+        # Arrange
+        value = None
+
+        # Act
+        result = validate_not_empty(value)  # type: ignore[arg-type]
+
+        # Assert
+        assert result is False
+
+    @pytest.mark.regression
+    def test_validate_not_empty_handles_empty_list(self) -> None:
+        """
+        Regression test: Ensure empty list returns False.
+
+        Bug: Previously, empty lists could return True.
+        Fix: Added explicit empty list check.
+        """
+        # Arrange
+        value = []
+
+        # Act
+        result = validate_not_empty(value)
+
+        # Assert
+        assert result is False
+
+    @pytest.mark.regression
+    def test_validate_not_empty_handles_empty_dict(self) -> None:
+        """
+        Regression test: Ensure empty dict returns False.
+
+        Bug: Previously, empty dicts could return True.
+        Fix: Added explicit empty dict check.
+        """
+        # Arrange
+        value = {}
+
+        # Act
+        result = validate_not_empty(value)
+
+        # Assert
+        assert result is False

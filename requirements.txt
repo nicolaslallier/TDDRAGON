@@ -1,3 +1,15 @@
 # Production dependencies
 # Pin versions for production stability
 
+# Web framework
+fastapi>=0.104.0,<1.0.0
+uvicorn[standard]>=0.24.0,<1.0.0
+
+# Database
+sqlalchemy>=2.0.0,<3.0.0
+psycopg2-binary>=2.9.9,<3.0.0
+alembic>=1.12.0,<2.0.0
+
+# Data validation
+pydantic>=2.5.0,<3.0.0
+pydantic-settings>=2.1.0,<3.0.0

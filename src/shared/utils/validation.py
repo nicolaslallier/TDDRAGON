@@ -30,7 +30,7 @@ def validate_email(email: str) -> bool:
     """
     if not email or not isinstance(email, str):
         return False
-    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     return bool(re.match(pattern, email))
 
 
@@ -59,7 +59,4 @@ def validate_not_empty(value: Any) -> bool:
         return False
     if isinstance(value, str) and not value.strip():
         return False
-    if isinstance(value, (list, dict)) and len(value) == 0:
-        return False
-    return True
-
+    return not (isinstance(value, (list, dict)) and len(value) == 0)

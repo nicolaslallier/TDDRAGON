@@ -6,6 +6,7 @@ well-tested as they're used across all endpoints.
 """
 
 import pytest
+
 from src.shared.utils.validation import validate_email, validate_not_empty
 
 
@@ -54,12 +55,15 @@ class TestValidateEmail:
         assert validate_email(email) is False  # type: ignore[arg-type]
 
     @pytest.mark.unit
-    @pytest.mark.parametrize("email,expected", [
-        ("user@example.com", True),
-        ("invalid", False),
-        ("", False),
-        ("test@domain.co.uk", True),
-    ])
+    @pytest.mark.parametrize(
+        "email,expected",
+        [
+            ("user@example.com", True),
+            ("invalid", False),
+            ("", False),
+            ("test@domain.co.uk", True),
+        ],
+    )
     def test_various_emails_return_expected_result(
         self, email: str, expected: bool
     ) -> None:
@@ -177,4 +181,3 @@ class TestValidateNotEmpty:
 
         # Assert
         assert result is True
-

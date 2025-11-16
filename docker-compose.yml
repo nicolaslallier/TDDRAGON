@@ -1,32 +1,104 @@
 version: '3.8'
 
 services:
-  # Example: Add your endpoint services here
-  # Each endpoint should have its own service definition
-  # 
-  # endpoint-example:
-  #   build:
-  #     context: .
-  #     dockerfile: docker/endpoint-example/Dockerfile
-  #   container_name: endpoint-example-api
-  #   ports:
-  #     - "8001:8000"
-  #   environment:
-  #     - ENV=development
-  #     - LOG_LEVEL=INFO
-  #   networks:
-  #     - api-network
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #   restart: unless-stopped
+  # Nginx reverse proxy
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+    depends_on:
+      - demo-api
+    networks:
+      - api-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Demo API endpoint
+  demo-api:
+    build:
+      context: .
+      dockerfile: docker/demo-api/Dockerfile
+    container_name: demo-api
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=development
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-tddragon}
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    depends_on:
+      - postgres
+    networks:
+      - api-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Log Collector endpoint
+  log-collector:
+    build:
+      context: .
+      dockerfile: docker/log-collector/Dockerfile
+    container_name: log-collector
+    ports:
+      - "8001:8001"
+    environment:
+      - ENV=development
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-tddragon}
+      - API_HOST=0.0.0.0
+      - API_PORT=8001
+      - NGINX_LOG_PATH=/var/log/nginx/access.log
+    depends_on:
+      - postgres
+    networks:
+      - api-network
+    volumes:
+      - nginx-logs:/var/log/nginx:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/logs/uptime?start_time=2024-01-01T00:00:00&end_time=2024-01-01T23:59:59')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-db
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-tddragon}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - api-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    # PostgreSQL is exposed to host for migrations and development tools
 
 networks:
   api-network:
     driver: bridge
 
 volumes:
-  # Add persistent volumes here if needed
-
+  postgres-data:
+  nginx-logs:
