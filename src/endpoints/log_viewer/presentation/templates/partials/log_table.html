@@ -1,0 +1,103 @@
+{% if logs %}
+<div class="table-container" id="log-table">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th><a href="#" onclick="sortBy('timestamp_utc')">Timestamp</a></th>
+                <th>Client IP</th>
+                <th>Method</th>
+                <th>URI</th>
+                <th><a href="#" onclick="sortBy('status_code')">Status</a></th>
+                <th>Response Time</th>
+                <th>User Agent</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td>{{ log.timestamp_utc.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                <td>{{ log.client_ip }}</td>
+                <td>{{ log.http_method }}</td>
+                <td>{{ log.request_uri }}</td>
+                <td><span class="status-badge status-{{ log.status_code // 100 }}xx">{{ log.status_code }}</span></td>
+                <td>{{ "%.3f"|format(log.response_time) }}s</td>
+                <td class="user-agent">{{ log.user_agent or "-" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="pagination">
+        {% if has_previous_page %}
+        <button class="btn btn-secondary" onclick="loadPage({{ page - 1 }})">Previous</button>
+        {% else %}
+        <button class="btn btn-secondary" disabled>Previous</button>
+        {% endif %}
+        
+        <span class="page-info">
+            <span>Page {{ page }} of {{ total_pages }} ({{ total_count }} total)</span>
+            <span class="last-update">Last updated: <span id="last-update-time"></span></span>
+        </span>
+        
+        {% if has_next_page %}
+        <button class="btn btn-secondary" onclick="loadPage({{ page + 1 }})">Next</button>
+        {% else %}
+        <button class="btn btn-secondary" disabled>Next</button>
+        {% endif %}
+        
+        <script>
+            function loadPage(pageNum) {
+                const form = document.getElementById('filters-form');
+                const formData = new FormData(form);
+                formData.set('page', pageNum);
+                htmx.ajax('POST', '/log-viewer/api/filter-logs', {
+                    values: Object.fromEntries(formData),
+                    target: '#log-table-container',
+                    swap: 'innerHTML'
+                }).then(function() {
+                    updateLastUpdateTime();
+                    // Re-setup live updates after page change
+                    const toggle = document.getElementById('live-updates-toggle');
+                    if (toggle && toggle.checked) {
+                        const container = document.getElementById('log-table-container');
+                        const params = new URLSearchParams();
+                        for (const [key, value] of formData.entries()) {
+                            if (value) {
+                                params.append(key, value);
+                            }
+                        }
+                        params.set('page', pageNum);
+                        container.setAttribute('hx-get', '/log-viewer/api/filter-logs?' + params.toString());
+                        container.setAttribute('hx-trigger', 'every 5s');
+                    }
+                });
+            }
+            
+            function updateLastUpdateTime() {
+                const timeElement = document.getElementById('last-update-time');
+                if (timeElement) {
+                    const now = new Date();
+                    timeElement.textContent = now.toLocaleTimeString();
+                }
+            }
+            
+            // Update time immediately when this partial loads
+            updateLastUpdateTime();
+            
+            // Update time when HTMX swaps content
+            if (typeof document !== 'undefined') {
+                document.body.addEventListener('htmx:afterSwap', function(event) {
+                    if (event.detail.target.id === 'log-table-container') {
+                        updateLastUpdateTime();
+                    }
+                });
+            }
+        </script>
+    </div>
+</div>
+{% else %}
+<div class="no-data-message">
+    <p>No logs found for the selected filters.</p>
+</div>
+{% endif %}
+

@@ -134,7 +134,6 @@ Le projet utilise Alembic pour gérer les migrations de schéma de base de donn�
 Les migrations sont organisées par endpoint :
 
 ```
-src/endpoints/demo_api/alembic/
 src/endpoints/log_collector/alembic/
 ```
 
@@ -143,10 +142,6 @@ src/endpoints/log_collector/alembic/
 Pour chaque endpoint, créez une migration dans son répertoire alembic :
 
 ```bash
-# Pour demo_api
-cd src/endpoints/demo_api
-alembic revision --autogenerate -m "Description de la migration"
-
 # Pour log_collector
 cd src/endpoints/log_collector
 alembic revision --autogenerate -m "Description de la migration"
@@ -159,7 +154,7 @@ alembic revision --autogenerate -m "Description de la migration"
 make postgres-migrate
 
 # Migration spécifique pour un endpoint
-cd src/endpoints/demo_api
+cd src/endpoints/log_collector
 alembic upgrade head
 ```
 
@@ -170,7 +165,7 @@ alembic upgrade head
 make postgres-migrate-downgrade
 
 # Annuler plusieurs migrations
-cd src/endpoints/demo_api
+cd src/endpoints/log_collector
 alembic downgrade -2  # Annule les 2 dernières migrations
 ```
 

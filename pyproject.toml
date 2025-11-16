@@ -113,6 +113,7 @@ omit = [
     "*/venv/*",
     "*/.venv/*",
     "*/alembic/*",  # Alembic migration files are auto-generated and tested via migrations
+    "src/endpoints/log_viewer/*",  # Exclude log_viewer from coverage (tested separately)
 ]
 
 [tool.coverage.report]

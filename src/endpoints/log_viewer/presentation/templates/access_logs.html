@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Access Logs{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Access Logs</h2>
+</div>
+
+<div class="filters-container">
+    {% include "partials/filters.html" %}
+</div>
+
+<div class="results-container">
+    <div class="live-updates-control">
+        <label>
+            <input type="checkbox" id="live-updates-toggle" checked>
+            <span>Live Updates (auto-refresh every 5 seconds)</span>
+        </label>
+    </div>
+    <div id="log-table-container">
+        {% include "partials/log_table.html" %}
+    </div>
+</div>
+
+<script>
+    // Initialize live updates after page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggle = document.getElementById('live-updates-toggle');
+        const container = document.getElementById('log-table-container');
+        const form = document.getElementById('filters-form');
+        
+        function setupLiveUpdates() {
+            if (toggle && container && form) {
+                // Build URL from current form values
+                const formData = new FormData(form);
+                const params = new URLSearchParams();
+                for (const [key, value] of formData.entries()) {
+                    if (value) {
+                        params.append(key, value);
+                    }
+                }
+                
+                // Set default values if not present
+                if (!params.has('start_time')) {
+                    const now = new Date();
+                    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+                    params.set('start_time', oneHourAgo.toISOString().slice(0, 16));
+                    params.set('end_time', now.toISOString().slice(0, 16));
+                }
+                if (!params.has('page')) {
+                    params.set('page', '1');
+                }
+                if (!params.has('page_size')) {
+                    params.set('page_size', '50');
+                }
+                
+                const url = '/log-viewer/api/filter-logs?' + params.toString();
+                
+                if (toggle.checked) {
+                    container.setAttribute('hx-get', url);
+                    container.setAttribute('hx-trigger', 'every 5s');
+                    container.setAttribute('hx-target', 'this');
+                    container.setAttribute('hx-swap', 'innerHTML');
+                } else {
+                    container.removeAttribute('hx-get');
+                    container.removeAttribute('hx-trigger');
+                }
+            }
+        }
+        
+        // Setup initial live updates
+        setupLiveUpdates();
+        
+        // Update when toggle changes
+        toggle.addEventListener('change', setupLiveUpdates);
+        
+        // Update when form submits (but don't trigger immediately, wait for user to submit)
+        form.addEventListener('submit', function() {
+            if (toggle.checked) {
+                // Small delay to let the form submit first
+                setTimeout(setupLiveUpdates, 100);
+            }
+        });
+        
+        // Update last update time indicator
+        function updateLastUpdateTime() {
+            const timeElement = document.getElementById('last-update-time');
+            if (timeElement) {
+                const now = new Date();
+                timeElement.textContent = now.toLocaleTimeString();
+            }
+        }
+        
+        // Update time when HTMX swaps content
+        document.body.addEventListener('htmx:afterSwap', function(event) {
+            if (event.detail.target.id === 'log-table-container') {
+                updateLastUpdateTime();
+                // Re-setup live updates with current filters
+                if (toggle && toggle.checked) {
+                    setupLiveUpdates();
+                }
+            }
+        });
+    });
+</script>
+
+<div class="charts-container">
+    <div id="charts-container">
+        {% include "partials/charts.html" %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="/static/js/charts.js"></script>
+{% endblock %}
+

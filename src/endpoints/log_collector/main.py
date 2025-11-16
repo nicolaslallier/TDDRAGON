@@ -11,7 +11,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.endpoints.log_collector.presentation.routes import router as logs_router
+from src.endpoints.log_collector.infrastructure.uptime_worker import get_uptime_worker
+from src.endpoints.log_collector.presentation.routes import (
+    health_router,
+    router as logs_router,
+)
 from src.shared.infrastructure.database import init_database
 from src.shared.infrastructure.logger import get_logger
 
@@ -69,12 +73,19 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
         logger.info("Running database migrations...")
         run_migrations()
 
+    # Start uptime worker
+    uptime_worker = get_uptime_worker()
+    await uptime_worker.start()
+    logger.info("Uptime worker started")
+
     logger.info("log_collector endpoint started successfully")
 
     yield
 
     # Shutdown
     logger.info("Shutting down log_collector endpoint...")
+    await uptime_worker.stop()
+    logger.info("Uptime worker stopped")
 
 
 def create_app() -> FastAPI:
@@ -104,6 +115,7 @@ def create_app() -> FastAPI:
 
     # Register routers
     app.include_router(logs_router)
+    app.include_router(health_router)
 
     return app
 
@@ -120,7 +132,7 @@ def main() -> None:
     import uvicorn
 
     host = os.getenv("API_HOST", "0.0.0.0")
-    port = int(os.getenv("API_PORT", "8001"))  # Different port from demo-api
+    port = int(os.getenv("API_PORT", "8001"))
     log_level = os.getenv("LOG_LEVEL", "info").lower()
 
     logger.info(f"Starting server on {host}:{port}")
