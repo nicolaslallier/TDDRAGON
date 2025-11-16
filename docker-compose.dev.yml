@@ -1,0 +1,17 @@
+version: '3.8'
+
+# Development override for docker-compose.yml
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  # Example: Development overrides for endpoints
+  # 
+  # endpoint-example:
+  #   volumes:
+  #     # Mount source code for hot reload
+  #     - ./src:/app/src:ro
+  #   environment:
+  #     - ENV=development
+  #     - DEBUG=true
+  #   command: python -m src.endpoints.endpoint_example.main --reload
+

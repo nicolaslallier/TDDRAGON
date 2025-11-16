@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # Example: Add your endpoint services here
+  # Each endpoint should have its own service definition
+  # 
+  # endpoint-example:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/endpoint-example/Dockerfile
+  #   container_name: endpoint-example-api
+  #   ports:
+  #     - "8001:8000"
+  #   environment:
+  #     - ENV=development
+  #     - LOG_LEVEL=INFO
+  #   networks:
+  #     - api-network
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #   restart: unless-stopped
+
+networks:
+  api-network:
+    driver: bridge
+
+volumes:
+  # Add persistent volumes here if needed
+

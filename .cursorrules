@@ -1,0 +1,785 @@
+# Python Development Guidelines for Cursor AI
+
+## Core Principles
+
+### 1. Test-Driven Development (TDD)
+- **ALWAYS write tests BEFORE implementing functionality**
+- Follow the Red-Green-Refactor cycle:
+  1. Write a failing test (Red)
+  2. Write minimal code to make it pass (Green)
+  3. Refactor while keeping tests green
+- **Unit test coverage MUST be 100%** - All unit tests must achieve 100% code coverage
+- **No test errors or warnings** - All unit tests must pass with zero errors and zero warnings
+- Integration and end-to-end test coverage should be >90% for all new code
+- Use pytest as the testing framework
+- Write unit tests, integration tests, and end-to-end tests as appropriate
+- Tests should be independent, isolated, and repeatable
+- Use descriptive test names: `test_<functionality>_<scenario>_<expected_result>`
+
+### 2. SOLID Principles
+- **Single Responsibility Principle (SRP)**: Each class/function should have one reason to change
+- **Open/Closed Principle (OCP)**: Open for extension, closed for modification
+- **Liskov Substitution Principle (LSP)**: Subtypes must be substitutable for their base types
+- **Interface Segregation Principle (ISP)**: Many specific interfaces are better than one general interface
+- **Dependency Inversion Principle (DIP)**: Depend on abstractions, not concretions
+
+### 3. Code Quality Standards
+- Follow PEP 8 style guide strictly
+- Use type hints for ALL functions, methods, and class attributes (Python 3.9+)
+- Maximum line length: 88 characters (Black formatter default)
+- Use Black for code formatting
+- Use isort for import sorting
+- Use pylint or ruff for linting
+- **No linting errors allowed** - All linting checks must pass with zero errors
+- Use mypy for static type checking
+- No `# type: ignore` without detailed explanation
+- Prefer composition over inheritance
+- Use dataclasses or Pydantic models for data structures
+- Avoid global variables; use dependency injection
+
+### 4. Architecture: Multi-Main Modular Endpoints
+- **Multiple Main Entry Points**: The codebase contains several independent main entry points
+- **Domain-Specific Endpoints**: Each domain-specific endpoint runs independently as a separate service/function
+- **Shared Common Code**: Endpoints can share common utilities, libraries, and infrastructure code
+- **Independence**: Each endpoint should be deployable and testable independently
+- **Modular Design**: Keep endpoints loosely coupled; they communicate through well-defined interfaces
+- **Shared Code Location**: Common code lives in `src/shared/` or `src/common/` directories
+- **Endpoint Structure**: Each endpoint has its own main entry point, domain logic, and tests
+- **No Cross-Dependencies**: Endpoints should NOT depend on each other directly; use shared code instead
+
+## Documentation Standards
+
+### Code Documentation (Junior-Friendly)
+- **Every function, class, and module MUST have docstrings**
+- Use Google-style docstrings for consistency
+- Docstrings should explain:
+  - **What** the code does (clear purpose)
+  - **Why** it exists (context and reasoning)
+  - **How** to use it (examples for complex logic)
+  - **Parameters** with types and descriptions
+  - **Returns** with types and descriptions
+  - **Raises** exceptions that may be raised
+  - **Examples** for non-trivial functions
+
+### Example Docstring Format:
+```python
+def calculate_total(items: list[Item], discount: float = 0.0) -> float:
+    """
+    Calculate the total price of items with optional discount.
+    
+    This function sums up the prices of all items in the list and applies
+    a discount percentage if provided. It's used in the checkout process
+    to determine the final amount a customer needs to pay.
+    
+    Args:
+        items: List of Item objects, each containing a price attribute.
+               Must not be empty.
+        discount: Discount percentage as a decimal (0.0 to 1.0).
+                  Defaults to 0.0 (no discount).
+    
+    Returns:
+        The total price after discount is applied, rounded to 2 decimal places.
+        Returns 0.0 if items list is empty.
+    
+    Raises:
+        ValueError: If discount is negative or greater than 1.0.
+        AttributeError: If items don't have a 'price' attribute.
+    
+    Example:
+        >>> items = [Item(price=10.0), Item(price=20.0)]
+        >>> calculate_total(items, discount=0.1)
+        27.0
+    """
+```
+
+### Inline Comments
+- Use comments to explain **WHY**, not **WHAT**
+- If code is complex, add comments explaining the algorithm or business logic
+- Avoid obvious comments that just repeat the code
+- Use TODO/FIXME comments with context and ticket numbers when applicable
+
+## Project Structure
+
+### Multi-Main Modular Architecture
+
+```
+project/
+├── src/
+│   ├── shared/                    # Shared/common code used by all endpoints
+│   │   ├── __init__.py
+│   │   ├── utils/                 # Common utilities (logging, validation, etc.)
+│   │   ├── models/                # Shared data models
+│   │   ├── infrastructure/        # Shared infrastructure (DB connections, etc.)
+│   │   └── exceptions/            # Shared exception classes
+│   │
+│   └── endpoints/                 # Domain-specific endpoints (each independent)
+│       ├── endpoint_a/            # First domain endpoint
+│       │   ├── __init__.py
+│       │   ├── main.py            # Main entry point for this endpoint
+│       │   ├── domain/            # Domain-specific business logic
+│       │   ├── application/       # Use cases / services
+│       │   └── presentation/       # API handlers, CLI
+│       │
+│       ├── endpoint_b/            # Second domain endpoint
+│       │   ├── __init__.py
+│       │   ├── main.py            # Main entry point for this endpoint
+│       │   ├── domain/
+│       │   ├── application/
+│       │   └── presentation/
+│       │
+│       └── endpoint_n/            # Nth domain endpoint
+│           ├── __init__.py
+│           ├── main.py            # Main entry point for this endpoint
+│           ├── domain/
+│           ├── application/
+│           └── presentation/
+│
+├── tests/
+│   ├── shared/                    # Tests for shared code
+│   ├── endpoints/
+│   │   ├── endpoint_a/            # Tests for endpoint_a
+│   │   │   ├── unit/
+│   │   │   ├── integration/
+│   │   │   └── e2e/
+│   │   ├── endpoint_b/            # Tests for endpoint_b
+│   │   └── endpoint_n/            # Tests for endpoint_n
+│   ├── unit/
+│   ├── integration/
+│   └── e2e/
+│
+├── docs/
+├── requirements.txt
+├── requirements-dev.txt
+├── pyproject.toml
+├── pytest.ini
+└── README.md
+```
+
+### Architecture Guidelines
+
+1. **Shared Code Principles**:
+   - Place reusable utilities, models, and infrastructure in `src/shared/`
+   - Shared code should be domain-agnostic and well-tested
+   - Document shared code thoroughly as it's used by multiple endpoints
+   - Version shared code carefully to avoid breaking dependent endpoints
+
+2. **Endpoint Independence**:
+   - Each endpoint has its own `main.py` entry point
+   - Endpoints can be deployed, tested, and scaled independently
+   - Endpoints should NOT import from other endpoints directly
+   - Use dependency injection to inject shared dependencies
+
+3. **Import Rules**:
+   - Endpoints can import from `src/shared/`
+   - Endpoints should NOT import from other endpoints
+   - Use clear import paths: `from src.shared.utils import logger`
+   - Avoid circular dependencies
+
+4. **Testing Independence**:
+   - Each endpoint has its own test suite
+   - Shared code has its own test suite
+   - Tests should mock shared dependencies when testing endpoint-specific logic
+   - Integration tests can test endpoint + shared code interactions
+
+## Testing Requirements
+
+### Test Structure
+- Mirror source structure in tests directory
+- Test files: `test_<module_name>.py`
+- Test classes: `Test<ClassName>` (when grouping related tests)
+- Use pytest fixtures for setup/teardown
+- Use pytest.mark.parametrize for testing multiple scenarios
+- Mock external dependencies (databases, APIs, file systems)
+
+### Test Quality
+- **Unit tests MUST achieve 100% code coverage** - All code paths must be tested
+- **Unit tests MUST pass with zero errors and zero warnings** - No exceptions allowed
+- Tests should be fast (< 1 second each)
+- Tests should be deterministic (no random data without seeds)
+- Use descriptive test names that read like specifications
+- One assertion per test when possible (or related assertions)
+- Use Arrange-Act-Assert (AAA) pattern
+- Run `pytest --cov --cov-report=term-missing` to verify 100% coverage
+- Fix all pytest warnings using `pytest -W error` to ensure zero warnings
+
+### Example Test:
+```python
+import pytest
+from src.package.calculator import Calculator
+
+class TestCalculator:
+    """Test suite for Calculator class."""
+    
+    def test_add_two_positive_numbers_returns_sum(self):
+        """Test that adding two positive numbers returns correct sum."""
+        # Arrange
+        calculator = Calculator()
+        a, b = 5, 3
+        
+        # Act
+        result = calculator.add(a, b)
+        
+        # Assert
+        assert result == 8
+    
+    @pytest.mark.parametrize("a,b,expected", [
+        (1, 1, 2),
+        (0, 5, 5),
+        (-1, 1, 0),
+    ])
+    def test_add_various_numbers_returns_correct_sum(self, a, b, expected):
+        """Test addition with various number combinations."""
+        calculator = Calculator()
+        assert calculator.add(a, b) == expected
+```
+
+## Error Handling
+
+- Use specific exception types, not bare `except:`
+- Create custom exceptions for domain-specific errors
+- Always log errors with context before raising
+- Use exception chaining when appropriate (`raise ... from ...`)
+- Document all exceptions that functions may raise
+
+## Dependency Management
+
+- Use `requirements.txt` for production dependencies
+- Use `requirements-dev.txt` for development dependencies
+- Pin versions for production (`==`), allow ranges for dev (`>=`)
+- Use virtual environments (venv or poetry)
+- Document why each dependency is needed
+
+## Code Review Checklist
+
+Before submitting code, ensure:
+- [ ] All tests pass with zero errors
+- [ ] All tests pass with zero warnings
+- [ ] Unit test coverage is 100% (use `pytest --cov --cov-report=term-missing`)
+- [ ] Integration test coverage >90%
+- [ ] Type hints on all functions
+- [ ] Docstrings on all public functions/classes
+- [ ] Code follows PEP 8
+- [ ] **No linter errors** - All linting checks must pass with zero errors
+- [ ] No mypy errors
+- [ ] SOLID principles followed
+- [ ] No code duplication (DRY)
+- [ ] Error handling is appropriate
+- [ ] Logging is used appropriately
+- [ ] README updated if needed
+
+## When Writing Code
+
+1. **Start with tests** - Write failing tests first
+2. **Write minimal code** - Make tests pass with simplest implementation
+3. **Verify 100% unit test coverage** - Ensure all code paths are tested
+4. **Verify zero errors and warnings** - Run `pytest -W error` to catch warnings
+5. **Refactor** - Improve code quality while keeping tests green
+6. **Document** - Add docstrings explaining purpose and usage
+7. **Type hint** - Add type annotations for clarity
+8. **Review** - Check against SOLID principles
+9. **Lint** - Run formatters and linters - **MUST have zero linting errors**
+
+## Architecture Patterns
+
+### Independent Endpoint Structure
+```python
+# src/endpoints/user_management/main.py
+"""
+Main entry point for User Management endpoint.
+
+This endpoint handles all user-related operations independently.
+It can be deployed and run as a standalone service.
+"""
+
+from src.shared.infrastructure.logger import get_logger
+from src.endpoints.user_management.application.user_service import UserService
+from src.endpoints.user_management.presentation.api import create_app
+
+def main() -> None:
+    """
+    Initialize and run the User Management endpoint.
+    
+    This function sets up the endpoint with its dependencies and starts
+    the service. It uses shared infrastructure for logging and common
+    utilities, but maintains its own domain logic.
+    """
+    logger = get_logger(__name__)
+    logger.info("Starting User Management endpoint")
+    
+    # Initialize domain-specific service
+    user_service = UserService(logger=logger)
+    
+    # Create and run the application
+    app = create_app(user_service=user_service)
+    app.run()
+    
+if __name__ == "__main__":
+    main()
+```
+
+### Shared Code Usage
+```python
+# src/endpoints/user_management/application/user_service.py
+"""
+User service for User Management endpoint.
+
+This service uses shared utilities but implements domain-specific logic.
+"""
+
+from src.shared.utils.validation import validate_email
+from src.shared.infrastructure.logger import Logger
+from src.shared.exceptions import ValidationError
+
+class UserService:
+    """
+    Service for user-related operations.
+    
+    This service handles user management domain logic. It uses shared
+    utilities (like validation) but implements endpoint-specific business rules.
+    
+    Args:
+        logger: Logger instance from shared infrastructure.
+    """
+    
+    def __init__(self, logger: Logger):
+        """
+        Initialize UserService.
+        
+        Args:
+            logger: Shared logger instance for logging operations.
+        """
+        self._logger = logger
+    
+    def create_user(self, email: str, name: str) -> dict:
+        """
+        Create a new user.
+        
+        Uses shared validation utilities but implements domain-specific
+        user creation logic.
+        
+        Args:
+            email: User email address (validated using shared utility).
+            name: User's full name.
+        
+        Returns:
+            Dictionary containing created user information.
+        
+        Raises:
+            ValidationError: If email is invalid (from shared exceptions).
+        """
+        # Use shared validation utility
+        if not validate_email(email):
+            raise ValidationError(f"Invalid email: {email}")
+        
+        self._logger.info(f"Creating user: {email}")
+        # Domain-specific logic here
+        return {"email": email, "name": name}
+```
+
+### Shared Code Example
+```python
+# src/shared/utils/validation.py
+"""
+Shared validation utilities.
+
+These utilities are used across all endpoints for common validation tasks.
+They are domain-agnostic and well-tested.
+"""
+
+def validate_email(email: str) -> bool:
+    """
+    Validate email address format.
+    
+    This is a shared utility used by multiple endpoints for email validation.
+    It implements a simple format check that all endpoints can rely on.
+    
+    Args:
+        email: Email address string to validate.
+    
+    Returns:
+        True if email format is valid, False otherwise.
+    
+    Example:
+        >>> validate_email("user@example.com")
+        True
+        >>> validate_email("invalid-email")
+        False
+    """
+    import re
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(pattern, email))
+```
+
+## Common Patterns
+
+### Dependency Injection
+```python
+class UserService:
+    """Service for user operations."""
+    
+    def __init__(self, repository: UserRepository, logger: Logger):
+        """
+        Initialize UserService with dependencies.
+        
+        Args:
+            repository: Repository for user data access.
+            logger: Logger instance for logging operations.
+        """
+        self._repository = repository
+        self._logger = logger
+```
+
+### Context Managers
+```python
+from contextlib import contextmanager
+
+@contextmanager
+def database_transaction(db: Database):
+    """Context manager for database transactions."""
+    transaction = db.begin()
+    try:
+        yield transaction
+        transaction.commit()
+    except Exception:
+        transaction.rollback()
+        raise
+```
+
+### Dataclasses for Data Structures
+```python
+from dataclasses import dataclass
+from typing import Optional
+
+@dataclass
+class User:
+    """Represents a user in the system."""
+    
+    id: int
+    email: str
+    name: str
+    age: Optional[int] = None
+    
+    def __post_init__(self):
+        """Validate user data after initialization."""
+        if not self.email or "@" not in self.email:
+            raise ValueError("Invalid email address")
+```
+
+## Performance Considerations
+
+- Use generators for large datasets
+- Avoid premature optimization
+- Profile before optimizing
+- Use appropriate data structures (sets for membership, dicts for lookups)
+- Consider async/await for I/O-bound operations
+
+## Security
+
+- Never commit secrets or API keys
+- Use environment variables for configuration
+- Validate and sanitize all inputs
+- Use parameterized queries for database operations
+- Follow OWASP guidelines for web applications
+
+## Docker & Docker Compose
+
+### Architecture: One Image Per Endpoint
+- **One Docker Image Per Function/Endpoint**: Each domain-specific endpoint must have its own Docker image
+- **Independent Containers**: Each endpoint runs as an independent container
+- **Docker Compose Orchestration**: Use docker-compose to orchestrate all endpoint containers
+- **Shared Code Handling**: Shared code is copied into each endpoint's image (no shared volumes for code)
+- **Base Image Strategy**: Consider using a base image with shared dependencies to reduce image size
+
+### Dockerfile Best Practices
+
+1. **Multi-Stage Builds**:
+   - Use multi-stage builds to minimize final image size
+   - Separate build stage from runtime stage
+   - Only copy necessary files to final image
+
+2. **Layer Caching Optimization**:
+   - Order Dockerfile instructions from least to most frequently changing
+   - Copy dependency files (`requirements.txt`) before source code
+   - Use `.dockerignore` to exclude unnecessary files
+
+3. **Python-Specific Optimizations**:
+   - Use Python slim images (`python:3.11-slim`) for smaller images
+   - Install only production dependencies in final stage
+   - Use virtual environments appropriately
+
+4. **Security**:
+   - Run containers as non-root user
+   - Use specific version tags, not `latest`
+   - Scan images for vulnerabilities
+
+### Dockerfile Template for Endpoints
+
+```dockerfile
+# Dockerfile for src/endpoints/user_management/
+# Multi-stage build for User Management endpoint
+
+# Build stage
+FROM python:3.11-slim as builder
+
+WORKDIR /build
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy and install Python dependencies
+COPY requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+# Runtime stage
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+
+# Copy Python dependencies from builder
+COPY --from=builder /root/.local /home/appuser/.local
+
+# Copy shared code and endpoint-specific code
+COPY src/shared/ ./src/shared/
+COPY src/endpoints/user_management/ ./src/endpoints/user_management/
+
+# Set PATH to include user's local bin
+ENV PATH=/home/appuser/.local/bin:$PATH
+
+# Switch to non-root user
+USER appuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
+
+# Expose port (endpoint-specific)
+EXPOSE 8000
+
+# Run the endpoint's main entry point
+CMD ["python", "-m", "src.endpoints.user_management.main"]
+```
+
+### Docker Compose Structure
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+
+services:
+  # User Management Endpoint
+  user-management:
+    build:
+      context: .
+      dockerfile: docker/user-management/Dockerfile
+    container_name: user-management-api
+    ports:
+      - "8001:8000"
+    environment:
+      - ENV=development
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=${DATABASE_URL}
+    networks:
+      - api-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Order Management Endpoint
+  order-management:
+    build:
+      context: .
+      dockerfile: docker/order-management/Dockerfile
+    container_name: order-management-api
+    ports:
+      - "8002:8000"
+    environment:
+      - ENV=development
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=${DATABASE_URL}
+    networks:
+      - api-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Shared services (databases, message queues, etc.)
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-db
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - api-network
+    restart: unless-stopped
+
+networks:
+  api-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+```
+
+### Project Structure with Docker
+
+```
+project/
+├── docker/
+│   ├── user-management/
+│   │   └── Dockerfile
+│   ├── order-management/
+│   │   └── Dockerfile
+│   └── base/
+│       └── Dockerfile          # Optional: base image with shared deps
+├── docker-compose.yml
+├── docker-compose.prod.yml     # Production override
+├── docker-compose.dev.yml      # Development override
+├── .dockerignore
+├── src/
+│   ├── shared/
+│   └── endpoints/
+│       ├── user_management/
+│       │   └── main.py
+│       └── order_management/
+│           └── main.py
+└── requirements.txt            # Shared dependencies
+```
+
+### Docker Guidelines
+
+1. **Image Naming Convention**:
+   - Use descriptive names: `<endpoint-name>-api`
+   - Tag images with version numbers for production
+   - Use `latest` tag only for development
+
+2. **Environment Variables**:
+   - All configuration via environment variables
+   - Use `.env` files for local development
+   - Never hardcode secrets or configuration
+   - Document all required environment variables in README
+
+3. **Health Checks**:
+   - Every endpoint must implement a `/health` endpoint
+   - Configure health checks in Dockerfile and docker-compose
+   - Health checks should verify the endpoint can serve requests
+
+4. **Networking**:
+   - Use Docker networks for service communication
+   - Endpoints communicate via network, not shared volumes
+   - Use service names for inter-service communication
+
+5. **Volumes**:
+   - Use volumes only for persistent data (databases, logs)
+   - Never mount source code as volumes in production
+   - Use named volumes for data persistence
+
+6. **Resource Limits**:
+   - Set memory and CPU limits in docker-compose
+   - Monitor resource usage
+   - Scale containers independently based on load
+
+7. **Logging**:
+   - Log to stdout/stderr (Docker best practice)
+   - Use structured logging (JSON format)
+   - Configure log rotation
+
+8. **Build Optimization**:
+   - Use BuildKit for faster builds: `DOCKER_BUILDKIT=1 docker-compose build`
+   - Leverage layer caching
+   - Use `.dockerignore` to exclude unnecessary files
+
+### .dockerignore Example
+
+```
+# .dockerignore
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.Python
+**/tests/
+**/test_*.py
+**/*_test.py
+**/.pytest_cache/
+**/.coverage
+**/htmlcov/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.venv
+**/venv/
+**/env/
+**/.env
+**/.git
+**/.gitignore
+**/README.md
+**/docs/
+**/.vscode/
+**/.idea/
+**/*.md
+**/docker-compose*.yml
+**/Dockerfile*
+```
+
+### Docker Compose Best Practices
+
+1. **Separate Compose Files**:
+   - `docker-compose.yml`: Base configuration
+   - `docker-compose.dev.yml`: Development overrides (hot reload, debug ports)
+   - `docker-compose.prod.yml`: Production overrides (no debug, optimized)
+
+2. **Development vs Production**:
+   - Development: Mount source code as volumes for hot reload
+   - Production: Copy code into image, no volumes
+   - Use different base images if needed
+
+3. **Service Dependencies**:
+   - Use `depends_on` for startup order
+   - Use health checks to ensure services are ready
+   - Implement retry logic in application code
+
+4. **Scaling**:
+   - Scale endpoints independently: `docker-compose up --scale user-management=3`
+   - Use load balancer for scaled services
+   - Each endpoint can scale based on its own load
+
+### Example: Development Docker Compose Override
+
+```yaml
+# docker-compose.dev.yml
+version: '3.8'
+
+services:
+  user-management:
+    volumes:
+      # Mount source code for hot reload
+      - ./src:/app/src:ro
+    environment:
+      - ENV=development
+      - DEBUG=true
+    command: python -m src.endpoints.user_management.main --reload
+```
+
+## Remember
+
+- **Code is read more than it's written** - Write for humans first
+- **Simple is better than complex** - Prefer clarity over cleverness
+- **Explicit is better than implicit** - Make intentions clear
+- **Documentation is part of the code** - Keep it updated
+- **Tests are documentation** - They show how code should be used
+- **Junior developers will read this** - Explain your reasoning
+
