@@ -288,6 +288,33 @@ class TestRoutesRegression:
         assert result.up_count == 1
         assert result.down_count == 1
 
+    @pytest.mark.regression
+    def test_health_check_endpoint_returns_ok(self):
+        """Test that health check endpoint returns status 'ok'."""
+        # Test line 153: Health check endpoint return statement
+        from fastapi.testclient import TestClient
+        from src.endpoints.log_collector.main import create_app
+        import os
+        
+        original_db_url = os.environ.get("DATABASE_URL")
+        os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+        
+        try:
+            app = create_app()
+            client = TestClient(app)
+            
+            # Act
+            response = client.get("/health")
+            
+            # Assert
+            assert response.status_code == 200
+            assert response.json() == {"status": "ok"}
+        finally:
+            if original_db_url is not None:
+                os.environ["DATABASE_URL"] = original_db_url
+            elif "DATABASE_URL" in os.environ:
+                del os.environ["DATABASE_URL"]
+
 
 class TestMainRegression:
     """Regression tests for main application."""

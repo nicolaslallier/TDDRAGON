@@ -25,6 +25,7 @@ from src.endpoints.log_collector.presentation.schemas import (
 )
 
 router = APIRouter(prefix="/logs", tags=["logs"])
+health_router = APIRouter(tags=["health"])
 
 
 def _to_log_response(entry: LogEntry) -> LogEntryResponse:
@@ -139,3 +140,14 @@ def get_uptime(
         up_count=up_count,
         down_count=down_count,
     )
+
+
+@health_router.get("/health", status_code=status.HTTP_200_OK)
+def health_check() -> dict[str, str]:
+    """
+    Health check endpoint.
+
+    Returns:
+        Dictionary with status "ok" to indicate the service is healthy.
+    """
+    return {"status": "ok"}

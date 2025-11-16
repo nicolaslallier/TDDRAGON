@@ -250,8 +250,64 @@ Each endpoint should have its own Dockerfile in `docker/[endpoint_name]/Dockerfi
 
 Example:
 ```bash
-docker build -f docker/endpoint-example/Dockerfile -t endpoint-example:latest .
+docker build -f docker/log-viewer/Dockerfile -t log-viewer:latest .
 ```
+
+## Endpoints
+
+### Log Collector (`log_collector`)
+
+**Purpose**: Collects and stores Nginx access logs and uptime metrics.
+
+**Port**: 8001
+
+**Main Routes**:
+- `GET /logs` - Query access logs with filters
+- `GET /logs/uptime` - Get uptime percentage for a time range
+
+**Start Server**:
+```bash
+python -m src.endpoints.log_collector.main
+```
+
+### Log Viewer (`log_viewer`) - v0.3.0
+
+**Purpose**: Web UI for querying and visualizing Nginx access logs and uptime data.
+
+**Port**: 8002
+
+**Main Routes**:
+- `GET /log-viewer/login` - Login page
+- `GET /log-viewer/access-logs` - Access logs viewer (requires authentication)
+- `GET /log-viewer/uptime` - Uptime monitoring page (requires authentication)
+- `POST /log-viewer/api/filter-logs` - HTMX endpoint for filtering logs
+- `GET /log-viewer/api/export-logs` - CSV export endpoint
+
+**Features**:
+- Filter logs by time range, status code, URI, and client IP
+- Paginated log display
+- HTTP status code histogram chart
+- Uptime timeline visualization
+- CSV export with filters
+- Mock authentication (for v0.3.0)
+
+**Mock Credentials**:
+- `admin` / `admin123`
+- `operator` / `operator123`
+- `viewer` / `viewer123`
+
+**Start Server**:
+```bash
+python -m src.endpoints.log_viewer.main
+```
+
+**Access via Nginx** (when running with docker-compose):
+- `http://localhost/log-viewer/login` - Login page
+- `http://localhost/log-viewer/access-logs` - Access logs viewer
+- `http://localhost/log-viewer/uptime` - Uptime page
+
+**Access Directly**:
+- `http://localhost:8002/log-viewer/login` - Login page
 
 ## Architecture Guidelines
 

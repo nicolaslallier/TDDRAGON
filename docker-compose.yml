@@ -10,36 +10,12 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - demo-api
+      - log-collector
+      - log-viewer
     networks:
       - api-network
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
-
-  # Demo API endpoint
-  demo-api:
-    build:
-      context: .
-      dockerfile: docker/demo-api/Dockerfile
-    container_name: demo-api
-    ports:
-      - "8000:8000"
-    environment:
-      - ENV=development
-      - LOG_LEVEL=INFO
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-tddragon}
-      - API_HOST=0.0.0.0
-      - API_PORT=8000
-    depends_on:
-      - postgres
-    networks:
-      - api-network
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -60,6 +36,9 @@ services:
       - API_HOST=0.0.0.0
       - API_PORT=8001
       - NGINX_LOG_PATH=/var/log/nginx/access.log
+      - NGINX_HEALTHCHECK_URL=http://nginx/health
+      - LOG_COLLECTOR_HEALTHCHECK_URL=http://log-collector:8001/health
+      - UPTIME_CHECK_INTERVAL=60
     depends_on:
       - postgres
     networks:
@@ -68,6 +47,33 @@ services:
       - nginx-logs:/var/log/nginx:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/logs/uptime?start_time=2024-01-01T00:00:00&end_time=2024-01-01T23:59:59')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Log Viewer endpoint
+  log-viewer:
+    build:
+      context: .
+      dockerfile: docker/log-viewer/Dockerfile
+    container_name: log-viewer
+    ports:
+      - "8002:8002"
+    environment:
+      - ENV=development
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-tddragon}
+      - API_HOST=0.0.0.0
+      - API_PORT=8002
+      - SESSION_SECRET_KEY=${SESSION_SECRET_KEY:-dev-secret-key-change-in-production}
+    depends_on:
+      - postgres
+      - log-collector
+    networks:
+      - api-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/log-viewer/login')"]
       interval: 30s
       timeout: 10s
       retries: 3

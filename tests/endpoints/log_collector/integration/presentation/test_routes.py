@@ -276,3 +276,15 @@ class TestLogsRoutes:
                 with suppress(Exception):
                     if session:
                         session.close()
+
+
+class TestHealthRoutes:
+    """Integration test suite for health routes."""
+
+    @pytest.mark.integration
+    def test_health_check_endpoint_returns_ok(self, client):
+        """Test that the /health endpoint returns status 'ok'."""
+        # Test line 153: Health check endpoint return statement
+        response = client.get("/health")
+        assert response.status_code == 200
+        assert response.json() == {"status": "ok"}

@@ -71,7 +71,7 @@ test-integration-parallel: ## Exécute les tests d'intégration en parallèle
 
 test-regression: ## Exécute uniquement les tests de régression (en parallèle avec couverture)
 	@echo "$(BLUE)Exécution des tests de régression en parallèle avec couverture...$(NC)"
-	$(PYTEST) -m regression -v -n auto --cov=src/endpoints/demo_api/application/create_item --cov=src/endpoints/demo_api/application/list_items --cov=src/endpoints/demo_api/domain/models --cov=src/endpoints/demo_api/infrastructure/repositories --cov=src/endpoints/demo_api/main --cov=src/endpoints/demo_api/presentation/dependencies --cov=src/endpoints/demo_api/presentation/health --cov=src/endpoints/demo_api/presentation/routes --cov=src/shared/exceptions/validation_error --cov=src/shared/infrastructure/database --cov=src/shared/infrastructure/logger --cov=src/shared/utils/validation --cov-report=term-missing --cov-fail-under=100
+	$(PYTEST) -m regression -v -n auto --cov=src/endpoints/log_collector --cov=src/shared/exceptions/validation_error --cov=src/shared/infrastructure/database --cov=src/shared/infrastructure/logger --cov=src/shared/utils/validation --cov-report=term-missing --cov-fail-under=100
 	@echo "$(GREEN)✓ Tests de régression terminés avec 100% de couverture$(NC)"
 
 test-e2e: ## Exécute uniquement les tests end-to-end
@@ -267,12 +267,6 @@ postgres-migrate-upgrade: venv ## Applique toutes les migrations Alembic en atte
 		echo "$(RED)✗ Alembic n'est pas installé. Exécutez 'make install-dev'$(NC)"; \
 		exit 1; \
 	fi
-	@if [ -f "src/endpoints/demo_api/alembic.ini" ]; then \
-		echo "$(YELLOW)Demo API:$(NC)"; \
-		cd src/endpoints/demo_api && \
-		export DATABASE_URL="postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)" && \
-		PYTHONPATH="$(CURDIR)" "$(CURDIR)/$(ALEMBIC)" upgrade head; \
-	fi
 	@if [ -f "src/endpoints/log_collector/alembic.ini" ]; then \
 		echo "$(YELLOW)Log Collector:$(NC)"; \
 		cd src/endpoints/log_collector && \
@@ -290,12 +284,6 @@ postgres-migrate-downgrade: venv ## Annule la dernière migration Alembic
 	@if [ ! -f "$(CURDIR)/$(ALEMBIC)" ]; then \
 		echo "$(RED)✗ Alembic n'est pas installé. Exécutez 'make install-dev'$(NC)"; \
 		exit 1; \
-	fi
-	@if [ -f "src/endpoints/demo_api/alembic.ini" ]; then \
-		echo "$(YELLOW)Demo API:$(NC)"; \
-		cd src/endpoints/demo_api && \
-		export DATABASE_URL="postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)" && \
-		PYTHONPATH="$(CURDIR)" "$(CURDIR)/$(ALEMBIC)" downgrade -1; \
 	fi
 	@if [ -f "src/endpoints/log_collector/alembic.ini" ]; then \
 		echo "$(YELLOW)Log Collector:$(NC)"; \
@@ -315,12 +303,6 @@ postgres-migrate-history: venv ## Affiche l'historique des migrations Alembic
 		echo "$(RED)✗ Alembic n'est pas installé. Exécutez 'make install-dev'$(NC)"; \
 		exit 1; \
 	fi
-	@if [ -f "src/endpoints/demo_api/alembic.ini" ]; then \
-		echo "$(YELLOW)Demo API:$(NC)"; \
-		cd src/endpoints/demo_api && \
-		export DATABASE_URL="postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)" && \
-		PYTHONPATH="$(CURDIR)" "$(CURDIR)/$(ALEMBIC)" history; \
-	fi
 	@if [ -f "src/endpoints/log_collector/alembic.ini" ]; then \
 		echo "$(YELLOW)Log Collector:$(NC)"; \
 		cd src/endpoints/log_collector && \
@@ -337,12 +319,6 @@ postgres-migrate-current: venv ## Affiche la version actuelle des migrations Ale
 	@if [ ! -f "$(CURDIR)/$(ALEMBIC)" ]; then \
 		echo "$(RED)✗ Alembic n'est pas installé. Exécutez 'make install-dev'$(NC)"; \
 		exit 1; \
-	fi
-	@if [ -f "src/endpoints/demo_api/alembic.ini" ]; then \
-		echo "$(YELLOW)Demo API:$(NC)"; \
-		cd src/endpoints/demo_api && \
-		export DATABASE_URL="postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)" && \
-		PYTHONPATH="$(CURDIR)" "$(CURDIR)/$(ALEMBIC)" current || echo "  Aucune migration appliquée"; \
 	fi
 	@if [ -f "src/endpoints/log_collector/alembic.ini" ]; then \
 		echo "$(YELLOW)Log Collector:$(NC)"; \

@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Uptime Monitoring{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Uptime Monitoring</h2>
+</div>
+
+<div class="filters-container">
+    <form id="uptime-filters-form" method="get" action="/log-viewer/uptime" class="filters-form">
+        <div class="filters-grid">
+            <div class="filter-group">
+                <label for="start_time">Start Time:</label>
+                <input type="datetime-local" id="start_time" name="start_time" value="{{ start_time or '' }}" required>
+            </div>
+            <div class="filter-group">
+                <label for="end_time">End Time:</label>
+                <input type="datetime-local" id="end_time" name="end_time" value="{{ end_time or '' }}" required>
+            </div>
+            <div class="filter-group">
+                <label></label>
+                <button type="submit" class="btn btn-primary">Apply Filters</button>
+                <button type="button" class="btn btn-secondary" onclick="resetUptimeFilters()">Last 15 Minutes</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="uptime-container">
+    <div class="uptime-summary">
+        <h3>Uptime Summary{% if source_filter %} - {% if source_filter == 'healthcheck_nginx' %}Nginx{% elif source_filter == 'healthcheck_log_collector' %}Log Collector{% elif source_filter == 'healthcheck_postgresql' %}PostgreSQL{% else %}All Services{% endif %}{% endif %}</h3>
+        <div class="uptime-percentage">
+            <span class="percentage-value">{{ "%.2f"|format(uptime_percentage) }}%</span>
+            <span class="percentage-label">Uptime</span>
+        </div>
+        <div class="period-info">
+            <p>Period: {{ start_time_dt.strftime("%Y-%m-%d %H:%M:%S") }} to {{ end_time_dt.strftime("%Y-%m-%d %H:%M:%S") }}</p>
+            <p>Total Records: {{ records|length }}</p>
+            {% if records %}
+            {% set up_count = records|selectattr("status", "equalto", "UP")|list|length %}
+            {% set down_count = records|selectattr("status", "equalto", "DOWN")|list|length %}
+            <p>UP: {{ up_count }} | DOWN: {{ down_count }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="uptime-timeline-chart">
+        <h3>Uptime Timeline</h3>
+        <canvas id="uptimeTimelineChart"></canvas>
+    </div>
+
+    <div class="uptime-records">
+        <h3>Uptime Records (Last 15 Minutes by Default)</h3>
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="source_filter">Filter by Source:</label>
+                <select id="source_filter" name="source" onchange="filterBySource()">
+                    <option value="" {% if not source_filter %}selected{% endif %}>All Services</option>
+                    <option value="healthcheck_nginx" {% if source_filter == 'healthcheck_nginx' %}selected{% endif %}>Nginx</option>
+                    <option value="healthcheck_log_collector" {% if source_filter == 'healthcheck_log_collector' %}selected{% endif %}>Log Collector</option>
+                    <option value="healthcheck_postgresql" {% if source_filter == 'healthcheck_postgresql' %}selected{% endif %}>PostgreSQL</option>
+                </select>
+            </div>
+        </div>
+        <div class="live-updates-control">
+            <label>
+                <input type="checkbox" id="uptime-live-updates-toggle" checked>
+                <span>Live Updates (auto-refresh every 5 seconds)</span>
+            </label>
+        </div>
+        <div id="uptime-records-container">
+            {% include "partials/uptime_table.html" %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function resetUptimeFilters() {
+        const now = new Date();
+        const fifteenMinutesAgo = new Date(now.getTime() - 15 * 60 * 1000);
+        
+        document.getElementById('start_time').value = fifteenMinutesAgo.toISOString().slice(0, 16);
+        document.getElementById('end_time').value = now.toISOString().slice(0, 16);
+        document.getElementById('source_filter').value = '';
+        
+        // Submit the form
+        document.getElementById('uptime-filters-form').submit();
+    }
+    
+    function filterBySource() {
+        const sourceFilter = document.getElementById('source_filter').value;
+        const form = document.getElementById('uptime-filters-form');
+        const formData = new FormData(form);
+        const params = new URLSearchParams();
+        
+        // Add time filters
+        for (const [key, value] of formData.entries()) {
+            if (value && key !== 'source') {
+                params.append(key, value);
+            }
+        }
+        
+        // Add source filter
+        if (sourceFilter) {
+            params.append('source', sourceFilter);
+        }
+        
+        // Reload page with filters
+        window.location.href = '/log-viewer/uptime?' + params.toString();
+    }
+    
+    // Initialize live updates for uptime page
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggle = document.getElementById('uptime-live-updates-toggle');
+        const container = document.getElementById('uptime-records-container');
+        const form = document.getElementById('uptime-filters-form');
+        
+        function setupUptimeLiveUpdates() {
+            if (toggle && container && form) {
+                // Build URL from current form values
+                const formData = new FormData(form);
+                const params = new URLSearchParams();
+                for (const [key, value] of formData.entries()) {
+                    if (value) {
+                        params.append(key, value);
+                    }
+                }
+                
+                // Set default values if not present
+                if (!params.has('start_time')) {
+                    const now = new Date();
+                    const fifteenMinutesAgo = new Date(now.getTime() - 15 * 60 * 1000);
+                    params.set('start_time', fifteenMinutesAgo.toISOString().slice(0, 16));
+                    params.set('end_time', now.toISOString().slice(0, 16));
+                }
+                
+                // Add source filter if selected
+                const sourceFilter = document.getElementById('source_filter');
+                if (sourceFilter && sourceFilter.value) {
+                    params.set('source', sourceFilter.value);
+                }
+                
+                const url = '/log-viewer/api/filter-uptime?' + params.toString();
+                
+                if (toggle.checked) {
+                    // Use HTMX to reload just the records table
+                    container.setAttribute('hx-get', url);
+                    container.setAttribute('hx-trigger', 'every 5s');
+                    container.setAttribute('hx-target', 'this');
+                    container.setAttribute('hx-swap', 'innerHTML');
+                } else {
+                    container.removeAttribute('hx-get');
+                    container.removeAttribute('hx-trigger');
+                }
+            }
+        }
+        
+        // Setup initial live updates
+        setupUptimeLiveUpdates();
+        
+        // Update when toggle changes
+        toggle.addEventListener('change', setupUptimeLiveUpdates);
+        
+        // Update when form submits
+        form.addEventListener('submit', function() {
+            if (toggle.checked) {
+                setTimeout(setupUptimeLiveUpdates, 100);
+            }
+        });
+    });
+    
+    // Initialize uptime timeline chart
+    const uptimeData = {{ uptime_timeline|tojson }};
+    if (uptimeData && uptimeData.length > 0) {
+        initializeUptimeTimelineChart('uptimeTimelineChart', uptimeData);
+    } else {
+        // Show message if no data
+        const canvas = document.getElementById('uptimeTimelineChart');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#999';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('No uptime data available for the selected period', canvas.width / 2, canvas.height / 2);
+        }
+    }
+</script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="/static/js/charts.js"></script>
+{% endblock %}

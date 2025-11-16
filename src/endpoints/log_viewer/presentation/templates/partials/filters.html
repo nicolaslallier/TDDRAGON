@@ -1,0 +1,94 @@
+<form id="filters-form" hx-post="/log-viewer/api/filter-logs" hx-target="#log-table-container" hx-swap="innerHTML" hx-trigger="submit" class="filters-form" hx-on::after-request="updateLiveUpdatesUrl(event)">
+    <div class="filters-grid">
+        <div class="filter-group">
+            <label for="start_time">Start Time:</label>
+            <input type="datetime-local" id="start_time" name="start_time" value="{{ start_time or '' }}" required>
+        </div>
+        <div class="filter-group">
+            <label for="end_time">End Time:</label>
+            <input type="datetime-local" id="end_time" name="end_time" value="{{ end_time or '' }}" required>
+        </div>
+        <div class="filter-group">
+            <label for="status_code">Status Code:</label>
+            <input type="number" id="status_code" name="status_code" value="{{ status_code or '' }}" placeholder="e.g., 200, 500">
+        </div>
+        <div class="filter-group">
+            <label for="uri">URI:</label>
+            <input type="text" id="uri" name="uri" value="{{ uri or '' }}" placeholder="e.g., /api/test">
+        </div>
+        <div class="filter-group">
+            <label for="client_ip">Client IP:</label>
+            <input type="text" id="client_ip" name="client_ip" value="{{ client_ip or '' }}" placeholder="e.g., 192.168.1.1">
+        </div>
+        <div class="filter-group">
+            <label for="page_size">Page Size:</label>
+            <select id="page_size" name="page_size">
+                <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
+                <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+                <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
+            </select>
+        </div>
+    </div>
+    <div class="filters-actions">
+        <button type="submit" class="btn btn-primary">Apply Filters</button>
+        <button type="button" class="btn btn-secondary" onclick="resetFilters()">Reset</button>
+        <a href="/log-viewer/api/export-logs" class="btn btn-secondary" id="export-link">Export CSV</a>
+    </div>
+</form>
+
+<script>
+    function resetFilters() {
+        document.getElementById('start_time').value = '';
+        document.getElementById('end_time').value = '';
+        document.getElementById('status_code').value = '';
+        document.getElementById('uri').value = '';
+        document.getElementById('client_ip').value = '';
+        document.getElementById('page_size').value = '50';
+    }
+
+    // Update export link when filters change
+    document.getElementById('filters-form').addEventListener('input', function() {
+        const form = document.getElementById('filters-form');
+        const formData = new FormData(form);
+        const params = new URLSearchParams();
+        for (const [key, value] of formData.entries()) {
+            if (value) {
+                params.append(key, value);
+            }
+        }
+        document.getElementById('export-link').href = '/log-viewer/api/export-logs?' + params.toString();
+    });
+
+    // Update live updates URL when filters change
+    function updateLiveUpdatesUrl(event) {
+        const form = document.getElementById('filters-form');
+        const formData = new FormData(form);
+        const params = new URLSearchParams();
+        for (const [key, value] of formData.entries()) {
+            if (value) {
+                params.append(key, value);
+            }
+        }
+        const container = document.getElementById('log-table-container');
+        if (container) {
+            container.setAttribute('hx-get', '/log-viewer/api/filter-logs?' + params.toString());
+        }
+    }
+
+    // Toggle live updates
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggle = document.getElementById('live-updates-toggle');
+        const container = document.getElementById('log-table-container');
+        
+        if (toggle && container) {
+            toggle.addEventListener('change', function() {
+                if (this.checked) {
+                    container.setAttribute('hx-trigger', 'every 5s');
+                } else {
+                    container.setAttribute('hx-trigger', 'none');
+                }
+            });
+        }
+    });
+</script>
+

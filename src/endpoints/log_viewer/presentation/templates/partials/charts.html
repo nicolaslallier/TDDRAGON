@@ -1,0 +1,15 @@
+<div class="charts-grid">
+    <div class="chart-container">
+        <h3>HTTP Status Code Distribution</h3>
+        <canvas id="httpCodeHistogram"></canvas>
+    </div>
+</div>
+
+<script>
+    // Initialize HTTP code histogram chart
+    const histogramData = {{ http_code_histogram|tojson }};
+    if (histogramData && Object.keys(histogramData).length > 0) {
+        initializeHttpCodeHistogram('httpCodeHistogram', histogramData);
+    }
+</script>
+

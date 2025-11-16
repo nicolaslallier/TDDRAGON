@@ -1,0 +1,39 @@
+{% if records %}
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Timestamp (UTC)</th>
+                <th>Status</th>
+                <th>Source</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records %}
+            <tr class="status-{{ record.status.lower() }}">
+                <td>{{ record.timestamp_utc.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                <td><span class="status-badge status-{{ record.status.lower() }}">{{ record.status }}</span></td>
+                <td>
+                    {% if record.source == "healthcheck_nginx" %}
+                        Nginx
+                    {% elif record.source == "healthcheck_log_collector" %}
+                        Log Collector
+                    {% elif record.source == "healthcheck_postgresql" %}
+                        PostgreSQL
+                    {% else %}
+                        {{ record.source }}
+                    {% endif %}
+                </td>
+                <td>{{ record.details or "-" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="no-data-message">
+    <p>No uptime records found for the selected period.</p>
+</div>
+{% endif %}
+

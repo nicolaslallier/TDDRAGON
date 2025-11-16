@@ -13,3 +13,11 @@ alembic>=1.12.0,<2.0.0
 # Data validation
 pydantic>=2.5.0,<3.0.0
 pydantic-settings>=2.1.0,<3.0.0
+
+# Template engine and form handling
+jinja2>=3.1.0,<4.0.0
+python-multipart>=0.0.6,<1.0.0
+itsdangerous>=2.1.0,<3.0.0
+
+# HTTP client for healthchecks
+requests>=2.31.0,<3.0.0
