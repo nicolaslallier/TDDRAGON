@@ -6,6 +6,7 @@ consistent error handling across all endpoints.
 """
 
 import pytest
+
 from src.shared.exceptions.validation_error import ValidationError
 
 
@@ -41,6 +42,5 @@ class TestValidationError:
         error = ValidationError(message)
 
         # Assert
-        assert hasattr(error, 'message')
+        assert hasattr(error, "message")
         assert error.message == message
-

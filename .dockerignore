@@ -1,28 +1,59 @@
-# .dockerignore
+# Docker ignore file
+# Exclude files and directories from Docker build context
+
+# Python
 **/__pycache__
 **/*.pyc
 **/*.pyo
 **/*.pyd
 .Python
-**/tests/
-**/test_*.py
-**/*_test.py
 **/.pytest_cache/
 **/.coverage
 **/htmlcov/
 **/.mypy_cache/
 **/.ruff_cache/
+
+# Virtual environments
 **/.venv
 **/venv/
 **/env/
-**/.env
-**/.git
-**/.gitignore
-**/README.md
-**/docs/
+
+# IDE
 **/.vscode/
 **/.idea/
-**/*.md
-**/docker-compose*.yml
-**/Dockerfile*
+**/*.swp
+**/*.swo
 
+# Git
+.git
+.gitignore
+
+# Documentation
+**/docs/
+**/*.md
+!README.md
+
+# Tests
+**/tests/
+**/test_*.py
+**/*_test.py
+
+# Docker files (don't copy into containers)
+docker-compose*.yml
+Dockerfile*
+
+# Environment files
+.env
+.env.*
+
+# Build artifacts
+**/dist/
+**/build/
+**/*.egg-info/
+
+# Logs
+**/*.log
+
+# OS
+.DS_Store
+Thumbs.db

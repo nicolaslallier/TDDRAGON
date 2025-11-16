@@ -1,4 +1,3 @@
 """
 Tests for shared code.
 """
-

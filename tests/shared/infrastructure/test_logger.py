@@ -6,10 +6,10 @@ consistent logging behavior across all endpoints.
 """
 
 import logging
-import sys
 from io import StringIO
 
 import pytest
+
 from src.shared.infrastructure.logger import get_logger
 
 
@@ -45,7 +45,7 @@ class TestGetLogger:
         test_output = StringIO()
         handler = logging.StreamHandler(test_output)
         handler.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(levelname)s - %(message)s')
+        formatter = logging.Formatter("%(levelname)s - %(message)s")
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
@@ -89,4 +89,3 @@ class TestGetLogger:
 
         # Assert
         assert logger1 is logger2
-

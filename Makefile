@@ -1,4 +1,4 @@
-.PHONY: help install install-dev test test-unit test-integration test-regression test-e2e test-coverage lint format type-check clean setup venv docker-build docker-up docker-down docker-logs check-all ci
+.PHONY: help install install-dev test test-parallel test-unit test-unit-parallel test-integration test-integration-parallel test-regression test-e2e test-coverage test-coverage-parallel lint format type-check clean setup venv docker-build docker-up docker-down docker-logs check-all ci dev-test
 
 # Variables
 PYTHON := python3
@@ -53,20 +53,35 @@ test: ## Exécute tous les tests
 	$(PYTEST) -v
 	@echo "$(GREEN)✓ Tous les tests terminés$(NC)"
 
-test-unit: ## Exécute uniquement les tests unitaires
-	@echo "$(BLUE)Exécution des tests unitaires...$(NC)"
-	$(PYTEST) -m unit -v
-	@echo "$(GREEN)✓ Tests unitaires terminés$(NC)"
+test-parallel: ## Exécute tous les tests en parallèle (plus rapide)
+	@echo "$(BLUE)Exécution de tous les tests en parallèle...$(NC)"
+	$(PYTEST) -v -n auto
+	@echo "$(GREEN)✓ Tous les tests terminés$(NC)"
 
-test-integration: ## Exécute uniquement les tests d'intégration
-	@echo "$(BLUE)Exécution des tests d'intégration...$(NC)"
-	$(PYTEST) -m integration -v
+test-unit: ## Exécute uniquement les tests unitaires (100% coverage requis)
+	@echo "$(BLUE)Exécution des tests unitaires...$(NC)"
+	$(PYTEST) -c pytest-unit.ini -v
+	@echo "$(GREEN)✓ Tests unitaires terminés avec 100% de couverture$(NC)"
+
+test-unit-parallel: ## Exécute les tests unitaires en parallèle (100% coverage requis)
+	@echo "$(BLUE)Exécution des tests unitaires en parallèle...$(NC)"
+	$(PYTEST) -c pytest-unit.ini -v -n auto
+	@echo "$(GREEN)✓ Tests unitaires terminés avec 100% de couverture$(NC)"
+
+test-integration: ## Exécute uniquement les tests d'intégration (en parallèle)
+	@echo "$(BLUE)Exécution des tests d'intégration en parallèle...$(NC)"
+	$(PYTEST) -m integration -v -n auto --no-cov
 	@echo "$(GREEN)✓ Tests d'intégration terminés$(NC)"
 
-test-regression: ## Exécute uniquement les tests de régression
-	@echo "$(BLUE)Exécution des tests de régression...$(NC)"
-	$(PYTEST) -m regression -v
-	@echo "$(GREEN)✓ Tests de régression terminés$(NC)"
+test-integration-parallel: ## Exécute les tests d'intégration en parallèle
+	@echo "$(BLUE)Exécution des tests d'intégration en parallèle...$(NC)"
+	$(PYTEST) -m integration -v -n auto
+	@echo "$(GREEN)✓ Tests d'intégration terminés$(NC)"
+
+test-regression: ## Exécute uniquement les tests de régression (en parallèle avec couverture)
+	@echo "$(BLUE)Exécution des tests de régression en parallèle avec couverture...$(NC)"
+	$(PYTEST) -m regression -v -n auto --cov=src/endpoints/demo_api/application/create_item --cov=src/endpoints/demo_api/application/list_items --cov=src/endpoints/demo_api/domain/models --cov=src/endpoints/demo_api/infrastructure/repositories --cov=src/endpoints/demo_api/main --cov=src/endpoints/demo_api/presentation/dependencies --cov=src/endpoints/demo_api/presentation/health --cov=src/endpoints/demo_api/presentation/routes --cov=src/shared/exceptions/validation_error --cov=src/shared/infrastructure/database --cov=src/shared/infrastructure/logger --cov=src/shared/utils/validation --cov-report=term-missing --cov-fail-under=100
+	@echo "$(GREEN)✓ Tests de régression terminés avec 100% de couverture$(NC)"
 
 test-e2e: ## Exécute uniquement les tests end-to-end
 	@echo "$(BLUE)Exécution des tests end-to-end...$(NC)"
@@ -76,6 +91,11 @@ test-e2e: ## Exécute uniquement les tests end-to-end
 test-coverage: ## Exécute les tests avec rapport de couverture
 	@echo "$(BLUE)Exécution des tests avec couverture...$(NC)"
 	$(PYTEST) --cov=src --cov-report=term-missing --cov-report=html
+	@echo "$(GREEN)✓ Rapport de couverture généré dans htmlcov/index.html$(NC)"
+
+test-coverage-parallel: ## Exécute les tests avec couverture en parallèle
+	@echo "$(BLUE)Exécution des tests avec couverture en parallèle...$(NC)"
+	$(PYTEST) --cov=src --cov-report=term-missing --cov-report=html -n auto
 	@echo "$(GREEN)✓ Rapport de couverture généré dans htmlcov/index.html$(NC)"
 
 test-coverage-xml: ## Exécute les tests avec rapport de couverture XML
@@ -184,7 +204,7 @@ docker-clean: ## Nettoie les conteneurs et images Docker
 dev-setup: setup ## Configuration complète pour le développement
 	@echo "$(GREEN)✓ Environnement de développement configuré$(NC)"
 
-dev-test: test-coverage ## Exécute les tests avec couverture (workflow de développement)
+dev-test: test-coverage-parallel ## Exécute les tests avec couverture en parallèle (workflow de développement)
 	@echo "$(GREEN)✓ Tests de développement terminés$(NC)"
 
 dev-check: format lint type-check ## Vérifie le code avant commit (format, lint, types)
