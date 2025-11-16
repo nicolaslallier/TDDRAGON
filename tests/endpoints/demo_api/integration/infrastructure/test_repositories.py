@@ -4,10 +4,12 @@ Integration tests for repository implementations.
 Tests the SQLAlchemy repository implementation against a real database.
 """
 
+import time
 from datetime import datetime
 
 import pytest
 
+from src.endpoints.demo_api.infrastructure.models import DemoItemModel
 from src.endpoints.demo_api.infrastructure.repositories import (
     SQLAlchemyDemoItemRepository,
 )
@@ -33,8 +35,6 @@ class TestSQLAlchemyDemoItemRepository:
 
         # Verify it's actually in the database
         test_session.commit()
-        from src.endpoints.demo_api.infrastructure.models import DemoItemModel
-
         db_item = (
             test_session.query(DemoItemModel).filter_by(id=created_item.id).first()
         )
@@ -88,7 +88,6 @@ class TestSQLAlchemyDemoItemRepository:
         repository = SQLAlchemyDemoItemRepository(test_session)
         item1 = repository.create("First Item")
         test_session.commit()
-        import time
 
         time.sleep(0.01)  # Small delay to ensure different timestamps
         item2 = repository.create("Second Item")

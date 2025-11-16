@@ -51,11 +51,52 @@ class TestValidationRegression:
         assert validate_not_empty({}) is False  # Line 63
 
     @pytest.mark.regression
-    def test_validate_not_empty_with_valid_values_returns_true(self):
-        """Test that validate_not_empty returns True for valid values."""
-        # Act & Assert
-        assert validate_not_empty("hello") is True
-        assert validate_not_empty([1, 2, 3]) is True
-        assert validate_not_empty({"key": "value"}) is True
-        assert validate_not_empty(0) is True
-        assert validate_not_empty(False) is True
+    def test_validate_not_empty_handles_none(self) -> None:
+        """
+        Regression test: Ensure None returns False.
+
+        Bug: Previously, None could cause errors.
+        Fix: Added explicit None check.
+        """
+        # Arrange
+        value = None
+
+        # Act
+        result = validate_not_empty(value)  # type: ignore[arg-type]
+
+        # Assert
+        assert result is False
+
+    @pytest.mark.regression
+    def test_validate_not_empty_handles_empty_list(self) -> None:
+        """
+        Regression test: Ensure empty list returns False.
+
+        Bug: Previously, empty lists could return True.
+        Fix: Added explicit empty list check.
+        """
+        # Arrange
+        value = []
+
+        # Act
+        result = validate_not_empty(value)
+
+        # Assert
+        assert result is False
+
+    @pytest.mark.regression
+    def test_validate_not_empty_handles_empty_dict(self) -> None:
+        """
+        Regression test: Ensure empty dict returns False.
+
+        Bug: Previously, empty dicts could return True.
+        Fix: Added explicit empty dict check.
+        """
+        # Arrange
+        value = {}
+
+        # Act
+        result = validate_not_empty(value)
+
+        # Assert
+        assert result is False

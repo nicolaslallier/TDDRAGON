@@ -1,7 +1,7 @@
 """
 Integration tests for health check endpoint.
 
-Tests the /health endpoint with database connectivity checks.
+Tests the /health endpoint with real database.
 """
 
 import pytest
@@ -14,9 +14,9 @@ def client(test_app):
     Provide a test client for the FastAPI application.
 
     Args:
-        test_app: FastAPI application fixture from conftest.
+        test_app: FastAPI application fixture.
 
-    Returns:
+    Yields:
         TestClient instance.
     """
     return TestClient(test_app)
@@ -27,7 +27,7 @@ class TestHealthEndpoint:
 
     @pytest.mark.integration
     def test_health_check_returns_200(self, client):
-        """Test that health check returns 200 OK."""
+        """Test that health check returns 200 OK with UP status."""
         # Act
         response = client.get("/health")
 
@@ -35,15 +35,4 @@ class TestHealthEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "UP"
-        assert "database" in data
-
-    @pytest.mark.integration
-    def test_health_check_includes_database_status(self, client):
-        """Test that health check includes database connection status."""
-        # Act
-        response = client.get("/health")
-
-        # Assert
-        assert response.status_code == 200
-        data = response.json()
-        assert data["database"] in ["connected", "disconnected"]
+        assert data["database"] == "connected"

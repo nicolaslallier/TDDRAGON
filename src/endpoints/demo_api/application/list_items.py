@@ -12,8 +12,8 @@ class ListItems:
     """
     Use case for listing all demo items.
 
-    This use case handles the business logic for retrieving all
-    demo items from the repository.
+    This use case handles the business logic for retrieving all demo items
+    from the repository.
     """
 
     def __init__(self, repository: DemoItemRepository) -> None:

@@ -4,7 +4,6 @@ FastAPI dependencies for demo_api endpoint.
 Provides dependency injection for repository and use cases.
 """
 
-
 from fastapi import Depends
 from sqlalchemy.orm import Session
 

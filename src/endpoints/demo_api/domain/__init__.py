@@ -1,1 +1,5 @@
-"""Domain layer for demo_api endpoint."""
+"""
+Demo API domain layer.
+
+Domain models and business logic for the demo API endpoint.
+"""

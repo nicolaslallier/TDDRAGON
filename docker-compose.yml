@@ -45,6 +45,34 @@ services:
       retries: 3
     restart: unless-stopped
 
+  # Log Collector endpoint
+  log-collector:
+    build:
+      context: .
+      dockerfile: docker/log-collector/Dockerfile
+    container_name: log-collector
+    ports:
+      - "8001:8001"
+    environment:
+      - ENV=development
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-tddragon}
+      - API_HOST=0.0.0.0
+      - API_PORT=8001
+      - NGINX_LOG_PATH=/var/log/nginx/access.log
+    depends_on:
+      - postgres
+    networks:
+      - api-network
+    volumes:
+      - nginx-logs:/var/log/nginx:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/logs/uptime?start_time=2024-01-01T00:00:00&end_time=2024-01-01T23:59:59')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
   # PostgreSQL database
   postgres:
     image: postgres:15-alpine
@@ -55,6 +83,8 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
     networks:
       - api-network
     healthcheck:
@@ -63,7 +93,7 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
-    # PostgreSQL is NOT exposed to host - only accessible via api-network
+    # PostgreSQL is exposed to host for migrations and development tools
 
 networks:
   api-network:
@@ -71,4 +101,4 @@ networks:
 
 volumes:
   postgres-data:
-
+  nginx-logs:

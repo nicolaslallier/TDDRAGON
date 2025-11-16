@@ -52,6 +52,24 @@ make docker-prod            # Mode production
 make docker-clean           # Nettoie les conteneurs et images
 ```
 
+### PostgreSQL
+
+```bash
+make postgres-up            # Démarre PostgreSQL via Docker
+make postgres-down          # Arrête PostgreSQL
+make postgres-status        # Vérifie le statut
+make postgres-connect       # Se connecte via psql
+make postgres-create-db     # Crée la base de données
+make postgres-drop-db       # Supprime la base de données
+make postgres-reset         # Réinitialise la base de données
+make postgres-migrate       # Applique les migrations Alembic
+make postgres-migrate-history  # Affiche l'historique des migrations
+make postgres-backup        # Crée une sauvegarde
+make postgres-restore       # Restaure une sauvegarde
+```
+
+Voir [docs/POSTGRESQL.md](POSTGRESQL.md) pour la documentation complète PostgreSQL.
+
 ### Nettoyage
 
 ```bash

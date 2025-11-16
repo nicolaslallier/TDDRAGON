@@ -1,1 +1,5 @@
-"""Presentation layer for demo_api endpoint."""
+"""
+Demo API presentation layer.
+
+API routes, schemas, and dependencies for the demo API endpoint.
+"""

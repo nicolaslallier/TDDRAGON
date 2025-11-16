@@ -80,7 +80,6 @@ class TestDemoItem:
 
         # Act & Assert
         assert item != other_object
-        assert item != other_object
 
     def test_demo_item_repr_returns_string_representation(self):
         """Test that __repr__ returns a string representation of DemoItem."""

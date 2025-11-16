@@ -82,7 +82,3 @@ class SQLAlchemyDemoItemRepository:
             label=db_model.label,
             created_at=db_model.created_at,
         )
-
-
-# Type alias for convenience
-DemoItemRepositoryImpl = SQLAlchemyDemoItemRepository

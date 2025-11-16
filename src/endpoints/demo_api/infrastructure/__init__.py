@@ -1,1 +1,5 @@
-"""Infrastructure layer for demo_api endpoint."""
+"""
+Demo API infrastructure layer.
+
+Database models and repository implementations for the demo API endpoint.
+"""

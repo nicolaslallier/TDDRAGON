@@ -28,7 +28,7 @@ class TestCreateItemRegression:
         use_case = CreateItem(repository=mock_repository)
 
         # Assert
-        assert use_case._repository is mock_repository  # Line 26
+        assert use_case._repository is mock_repository
 
     @pytest.mark.regression
     def test_create_item_execute_with_valid_label_returns_demo_item(self):
@@ -44,7 +44,7 @@ class TestCreateItemRegression:
 
         # Assert
         assert result is mock_item
-        mock_repository.create.assert_called_once_with("Test")  # Line 49
+        mock_repository.create.assert_called_once_with("Test")
 
     @pytest.mark.regression
     def test_create_item_execute_trims_whitespace(self):
@@ -59,7 +59,7 @@ class TestCreateItemRegression:
         use_case.execute("  Test  ")
 
         # Assert
-        mock_repository.create.assert_called_once_with("Test")  # Line 48
+        mock_repository.create.assert_called_once_with("Test")
 
     @pytest.mark.regression
     def test_create_item_execute_with_empty_label_raises_error(self):
@@ -70,7 +70,7 @@ class TestCreateItemRegression:
 
         # Act & Assert
         with pytest.raises(ValueError, match="Label cannot be empty"):
-            use_case.execute("")  # Line 45-46
+            use_case.execute("")
 
     @pytest.mark.regression
     def test_create_item_execute_with_none_label_raises_error(self):
@@ -81,7 +81,7 @@ class TestCreateItemRegression:
 
         # Act & Assert
         with pytest.raises(ValueError, match="Label cannot be empty"):
-            use_case.execute(None)  # Line 45-46
+            use_case.execute(None)
 
 
 class TestListItemsRegression:
@@ -97,7 +97,7 @@ class TestListItemsRegression:
         use_case = ListItems(repository=mock_repository)
 
         # Assert
-        assert use_case._repository is mock_repository  # Line 26
+        assert use_case._repository is mock_repository
 
     @pytest.mark.regression
     def test_list_items_execute_returns_repository_find_all(self):
@@ -116,4 +116,4 @@ class TestListItemsRegression:
 
         # Assert
         assert result is mock_items
-        mock_repository.find_all.assert_called_once()  # Line 37
+        mock_repository.find_all.assert_called_once()

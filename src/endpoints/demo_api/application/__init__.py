@@ -1,1 +1,5 @@
-"""Application layer for demo_api endpoint."""
+"""
+Demo API application layer.
+
+Use cases and application services for the demo API endpoint.
+"""

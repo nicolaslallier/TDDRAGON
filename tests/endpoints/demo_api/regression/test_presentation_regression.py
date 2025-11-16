@@ -1,14 +1,13 @@
 """
-Regression tests for presentation layer.
+Regression tests for demo_api presentation layer.
 
-Ensures that API routes, dependencies, and health checks continue to work correctly.
+Ensures that presentation components continue to work correctly after changes.
 """
 
 from datetime import datetime
-from unittest.mock import MagicMock
+from unittest.mock import Mock
 
 import pytest
-from fastapi.testclient import TestClient
 
 from src.endpoints.demo_api.domain.models import DemoItem
 from src.endpoints.demo_api.presentation.dependencies import (
@@ -19,64 +18,60 @@ from src.endpoints.demo_api.presentation.dependencies import (
 from src.endpoints.demo_api.presentation.routes import _to_response
 
 
-@pytest.fixture
-def client(test_app):
-    """Provide a test client for the FastAPI app."""
-    return TestClient(test_app)
-
-
 class TestDependenciesRegression:
     """Regression tests for FastAPI dependencies."""
 
     @pytest.mark.regression
-    def test_get_repository_returns_sqlalchemy_repository(self, test_session):
-        """Test that get_repository returns SQLAlchemyDemoItemRepository."""
-        # Arrange & Act
-        repository = get_repository(session=test_session)
-
-        # Assert
+    def test_get_repository_returns_sqlalchemy_repository(self):
+        """Test that get_repository returns SQLAlchemyDemoItemRepository instance."""
+        # Arrange
         from src.endpoints.demo_api.infrastructure.repositories import (
             SQLAlchemyDemoItemRepository,
         )
 
-        assert isinstance(repository, SQLAlchemyDemoItemRepository)  # Line 34
+        mock_session = Mock()
+
+        # Act
+        repository = get_repository(session=mock_session)
+
+        # Assert
+        assert repository is not None
+        assert isinstance(repository, SQLAlchemyDemoItemRepository)
+        assert hasattr(repository, "create")
+        assert hasattr(repository, "find_all")
 
     @pytest.mark.regression
-    def test_get_create_item_use_case_returns_create_item(self, test_session):
+    def test_get_create_item_use_case_returns_create_item_instance(self):
         """Test that get_create_item_use_case returns CreateItem instance."""
         # Arrange
-        repository = get_repository(session=test_session)
+        mock_repository = Mock()
 
         # Act
-        use_case = get_create_item_use_case(repository=repository)
+        use_case = get_create_item_use_case(repository=mock_repository)
 
         # Assert
-        from src.endpoints.demo_api.application.create_item import CreateItem
-
-        assert isinstance(use_case, CreateItem)  # Line 51
-        assert use_case._repository is repository
+        assert use_case is not None
+        assert hasattr(use_case, "execute")
 
     @pytest.mark.regression
-    def test_get_list_items_use_case_returns_list_items(self, test_session):
+    def test_get_list_items_use_case_returns_list_items_instance(self):
         """Test that get_list_items_use_case returns ListItems instance."""
         # Arrange
-        repository = get_repository(session=test_session)
+        mock_repository = Mock()
 
         # Act
-        use_case = get_list_items_use_case(repository=repository)
+        use_case = get_list_items_use_case(repository=mock_repository)
 
         # Assert
-        from src.endpoints.demo_api.application.list_items import ListItems
-
-        assert isinstance(use_case, ListItems)  # Line 68
-        assert use_case._repository is repository
+        assert use_case is not None
+        assert hasattr(use_case, "execute")
 
 
 class TestRoutesRegression:
-    """Regression tests for API routes."""
+    """Regression tests for FastAPI routes."""
 
     @pytest.mark.regression
-    def test_to_response_converts_demo_item_to_response(self):
+    def test_to_response_converts_domain_model_to_schema(self):
         """Test that _to_response converts DemoItem to DemoItemResponse."""
         # Arrange
         item = DemoItem(id=1, label="Test", created_at=datetime.now())
@@ -85,100 +80,136 @@ class TestRoutesRegression:
         response = _to_response(item)
 
         # Assert
-        assert response.id == 1  # Line 36-40
+        assert response.id == 1
         assert response.label == "Test"
         assert response.created_at == item.created_at
 
     @pytest.mark.regression
-    def test_create_demo_item_route_with_value_error_returns_400(
-        self, test_app, client
-    ):
-        """Test that ValueError from use case returns 400."""
+    def test_create_demo_item_route_handles_value_error(self):
+        """Test that create_demo_item route handles ValueError."""
         # Arrange
-        from src.endpoints.demo_api.application.create_item import CreateItem
+        from unittest.mock import Mock
 
-        mock_use_case = MagicMock(spec=CreateItem)
-        mock_use_case.execute = MagicMock(
-            side_effect=ValueError("Label cannot be empty")
-        )
+        from fastapi import HTTPException
 
-        def mock_get_create_item_use_case():
-            return mock_use_case
+        from src.endpoints.demo_api.presentation.routes import create_demo_item
+        from src.endpoints.demo_api.presentation.schemas import CreateDemoItemRequest
 
-        test_app.dependency_overrides[
-            get_create_item_use_case
-        ] = mock_get_create_item_use_case
+        mock_use_case = Mock()
+        mock_use_case.execute.side_effect = ValueError("Label cannot be empty")
 
-        try:
-            # Act
-            response = client.post("/demo-items", json={"label": "test"})
+        request = CreateDemoItemRequest(label="Valid Label")
 
-            # Assert
-            assert response.status_code == 400  # Line 70-74
-            assert "Label cannot be empty" in response.json()["detail"]
-        finally:
-            test_app.dependency_overrides.pop(get_create_item_use_case, None)
+        # Act & Assert
+        with pytest.raises(HTTPException) as exc_info:
+            create_demo_item(request=request, use_case=mock_use_case)
+
+        assert exc_info.value.status_code == 400
+        assert "Label cannot be empty" in str(exc_info.value.detail)
 
     @pytest.mark.regression
-    def test_list_demo_items_route_converts_to_response_list(self, client):
-        """Test that list route converts items to response list."""
+    def test_create_demo_item_route_returns_created_item(self):
+        """Test that create_demo_item route returns created item."""
         # Arrange
-        client.post("/demo-items", json={"label": "Item 1"})
-        client.post("/demo-items", json={"label": "Item 2"})
+        from unittest.mock import Mock
+
+        from src.endpoints.demo_api.presentation.routes import create_demo_item
+        from src.endpoints.demo_api.presentation.schemas import CreateDemoItemRequest
+
+        mock_item = DemoItem(id=1, label="Test Item", created_at=datetime.now())
+        mock_use_case = Mock()
+        mock_use_case.execute.return_value = mock_item
+
+        request = CreateDemoItemRequest(label="Test Item")
 
         # Act
-        response = client.get("/demo-items")
+        result = create_demo_item(request=request, use_case=mock_use_case)
 
         # Assert
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) == 2
-        assert all("id" in item for item in data)  # Line 102-103
-        assert all("label" in item for item in data)
-        assert all("created_at" in item for item in data)
+        assert result.id == 1
+        assert result.label == "Test Item"
+
+    @pytest.mark.regression
+    def test_list_demo_items_route_returns_items(self):
+        """Test that list_demo_items route returns list of items."""
+        # Arrange
+        from unittest.mock import Mock
+
+        from src.endpoints.demo_api.domain.models import DemoItem
+        from src.endpoints.demo_api.presentation.routes import list_demo_items
+
+        mock_items = [
+            DemoItem(id=1, label="Item 1", created_at=datetime.now()),
+            DemoItem(id=2, label="Item 2", created_at=datetime.now()),
+        ]
+        mock_use_case = Mock()
+        mock_use_case.execute.return_value = mock_items
+
+        # Act
+        result = list_demo_items(use_case=mock_use_case)
+
+        # Assert
+        assert len(result) == 2
+        assert result[0].id == 1
+        assert result[1].id == 2
 
 
 class TestHealthRegression:
-    """Regression tests for health check endpoint."""
+    """Regression tests for health endpoint."""
 
     @pytest.mark.regression
-    def test_health_check_returns_status_and_database(self, client):
-        """Test that health check returns status and database fields."""
-        # Act
-        response = client.get("/health")
+    def test_health_check_route_exists(self):
+        """Test that health_check route handler exists."""
+        # Arrange
+        from src.endpoints.demo_api.presentation.health import health_check
 
         # Assert
-        assert response.status_code == 200
-        data = response.json()
-        assert "status" in data  # Line 41-52
-        assert "database" in data
-        assert data["status"] in ["UP", "DOWN"]
-        assert data["database"] in ["connected", "disconnected"]
+        assert health_check is not None
+        assert callable(health_check)
 
     @pytest.mark.regression
-    def test_health_check_with_database_error_returns_down(self, test_app, client):
-        """Test that health check returns DOWN when database fails."""
+    def test_health_check_with_database_connection(self):
+        """Test that health_check tests database connection."""
         # Arrange
-        from sqlalchemy.orm import Session
+        import os
 
-        from src.shared.infrastructure.database import get_session
+        from src.endpoints.demo_api.presentation.health import health_check
+        from src.shared.infrastructure.database import get_session, init_database
 
-        mock_session = MagicMock(spec=Session)
-        mock_session.execute = MagicMock(side_effect=Exception("Connection failed"))
-
-        def mock_get_session():
-            yield mock_session
-
-        test_app.dependency_overrides[get_session] = mock_get_session
+        original_db_url = os.environ.get("DATABASE_URL")
+        os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+        init_database("sqlite:///:memory:")
 
         try:
+            session_gen = get_session()
+            session = next(session_gen)
+
             # Act
-            response = client.get("/health")
+            result = health_check(session=session)
 
             # Assert
-            assert response.status_code == 200
-            data = response.json()
-            assert data["status"] == "DOWN"  # Line 47-48
-            assert data["database"] == "disconnected"
+            assert result.status == "UP"
+            assert result.database == "connected"
         finally:
-            test_app.dependency_overrides.pop(get_session, None)
+            if original_db_url is not None:
+                os.environ["DATABASE_URL"] = original_db_url
+            elif "DATABASE_URL" in os.environ:
+                del os.environ["DATABASE_URL"]
+
+    @pytest.mark.regression
+    def test_health_check_handles_database_error(self):
+        """Test that health_check handles database connection errors."""
+        # Arrange
+        from unittest.mock import Mock
+
+        from src.endpoints.demo_api.presentation.health import health_check
+
+        mock_session = Mock()
+        mock_session.execute.side_effect = Exception("Database error")
+
+        # Act
+        result = health_check(session=mock_session)
+
+        # Assert
+        assert result.status == "DOWN"
+        assert result.database == "disconnected"

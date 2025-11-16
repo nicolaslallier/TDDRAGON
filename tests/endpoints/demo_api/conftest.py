@@ -5,7 +5,9 @@ Provides database fixtures and test utilities for demo_api endpoint tests.
 """
 
 import os
+import tempfile
 from collections.abc import Generator
+from contextlib import suppress
 
 import pytest
 from fastapi import FastAPI
@@ -33,8 +35,6 @@ def test_database_url() -> str:
         return test_db_url
     # Use file-based SQLite for tests (in-memory has connection isolation issues)
     # Use a unique file per test to avoid conflicts
-    import tempfile
-
     with tempfile.NamedTemporaryFile(delete=False, suffix=".db") as db_file:
         db_filename = db_file.name
     db_url = f"sqlite:///{db_filename}"
@@ -63,7 +63,8 @@ def test_engine(test_database_url: str):
     yield engine
     # Drop all tables
     SharedBase.metadata.drop_all(engine)
-    engine.dispose()
+    # Properly dispose of all connections
+    engine.dispose(close=True)
 
 
 @pytest.fixture(scope="function")
@@ -120,6 +121,8 @@ def test_app(test_database_url: str) -> Generator[FastAPI, None, None]:
         yield app
         # Cleanup: drop tables after test
         SharedBase.metadata.drop_all(engine)
+        # Properly dispose of all connections
+        engine.dispose(close=True)
     finally:
         # Restore original DATABASE_URL
         if original_db_url is not None:
@@ -130,7 +133,5 @@ def test_app(test_database_url: str) -> Generator[FastAPI, None, None]:
         if hasattr(pytest, "current_db_file") and os.path.exists(
             pytest.current_db_file
         ):
-            from contextlib import suppress
-
             with suppress(Exception):
                 os.unlink(pytest.current_db_file)

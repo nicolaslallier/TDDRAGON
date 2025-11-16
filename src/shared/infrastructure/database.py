@@ -99,8 +99,37 @@ def init_database(database_url: str | None = None) -> None:
                 "max_overflow": 10,  # Additional connections beyond pool_size
             }
         )
+    elif database_url.startswith("sqlite"):
+        # SQLite-specific: Use WAL mode for better concurrency and connection isolation
+        # This allows multiple connections to see committed data immediately
+        # Use StaticPool with size=1 for SQLite to ensure all sessions share the same connection
+        # This is necessary for E2E tests where we need cross-session visibility
+        from sqlalchemy.pool import StaticPool
+
+        engine_kwargs["poolclass"] = StaticPool
+        engine_kwargs["connect_args"] = {"check_same_thread": False}
+        # StaticPool with size=1 ensures all sessions share the same connection
+        # This makes committed data immediately visible to all sessions
 
     _engine = create_engine(database_url, **engine_kwargs)
+
+    # Enable WAL mode for SQLite file-based databases for better concurrency
+    # WAL mode allows multiple connections to see committed data immediately
+    if database_url.startswith("sqlite:///") and not database_url.startswith(
+        "sqlite:///:memory:"
+    ):
+
+        def enable_wal(dbapi_conn, connection_record):  # noqa: ARG001
+            cursor = dbapi_conn.cursor()
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA synchronous=NORMAL")  # Faster than FULL, still safe
+            # Set busy_timeout to avoid locking issues
+            cursor.execute("PRAGMA busy_timeout=30000")  # 30 seconds
+            cursor.close()
+
+        from sqlalchemy import event
+
+        event.listen(_engine, "connect", enable_wal)
 
     _session_factory = sessionmaker(
         bind=_engine,

@@ -1,7 +1,7 @@
 """
 Acceptance tests for demo_api endpoint.
 
-Tests the acceptance criteria defined in v0.1.0.md (AT-001 to AT-004).
+Tests the acceptance criteria defined in v0.1.0.md (AT-001 to AT-003).
 """
 
 import pytest
@@ -86,5 +86,7 @@ class TestAcceptanceCriteria:
         # Assert
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
         assert len(data) >= 2
+        labels = [item["label"] for item in data]
+        assert "Item 1" in labels
+        assert "Item 2" in labels

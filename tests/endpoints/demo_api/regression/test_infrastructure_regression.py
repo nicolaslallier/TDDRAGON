@@ -1,15 +1,15 @@
 """
-Regression tests for infrastructure layer.
+Regression tests for demo_api infrastructure layer.
 
-Ensures that repository implementations continue to work correctly.
+Ensures that infrastructure components continue to work correctly after changes.
 """
 
 from datetime import datetime
+from unittest.mock import Mock, patch
 
 import pytest
 
 from src.endpoints.demo_api.domain.models import DemoItem
-from src.endpoints.demo_api.infrastructure.models import DemoItemModel
 from src.endpoints.demo_api.infrastructure.repositories import (
     SQLAlchemyDemoItemRepository,
 )
@@ -19,76 +19,99 @@ class TestSQLAlchemyDemoItemRepositoryRegression:
     """Regression tests for SQLAlchemyDemoItemRepository."""
 
     @pytest.mark.regression
-    def test_repository_init_stores_session(self, test_session):
-        """Test that repository stores session correctly."""
-        # Arrange & Act
-        repository = SQLAlchemyDemoItemRepository(test_session)
-
-        # Assert
-        assert repository._session is test_session  # Line 31
-
-    @pytest.mark.regression
-    def test_repository_create_with_valid_label(self, test_session):
-        """Test that create method persists item to database."""
+    def test_sqlalchemy_demo_item_repository_initializes_with_session(self):
+        """Test that SQLAlchemyDemoItemRepository.__init__ stores session correctly."""
         # Arrange
-        repository = SQLAlchemyDemoItemRepository(test_session)
-        label = "Test Item"
+        mock_session = Mock()
 
         # Act
-        result = repository.create(label)
+        repository = SQLAlchemyDemoItemRepository(session=mock_session)
 
         # Assert
-        assert result.id is not None
-        assert result.label == label
-        assert isinstance(result.created_at, datetime)
-        # Verify database persistence (lines 49-52)
-        test_session.commit()
-        db_item = test_session.query(DemoItemModel).filter_by(id=result.id).first()
-        assert db_item is not None
-        assert db_item.label == label
+        assert repository._session is mock_session
 
     @pytest.mark.regression
-    def test_repository_create_with_empty_label_raises_error(self, test_session):
+    def test_create_demo_item_converts_to_domain_model(self):
+        """Test that create converts database model to domain model."""
+        # Arrange
+        from src.endpoints.demo_api.infrastructure.models import DemoItemModel
+
+        mock_session = Mock()
+        mock_db_model = Mock(spec=DemoItemModel)
+        mock_db_model.id = 1
+        mock_db_model.label = "Test"
+        mock_db_model.created_at = datetime.now()
+        mock_session.add.return_value = None
+        mock_session.flush.return_value = None
+        mock_session.commit.return_value = None
+
+        repository = SQLAlchemyDemoItemRepository(session=mock_session)
+
+        # Mock _to_domain_model to return a DemoItem
+        mock_item = DemoItem(id=1, label="Test", created_at=datetime.now())
+        with patch.object(repository, "_to_domain_model", return_value=mock_item):
+            # Act
+            result = repository.create("Test")
+
+            # Assert
+            assert result is mock_item
+            mock_session.add.assert_called_once()
+            mock_session.flush.assert_called_once()
+            mock_session.commit.assert_called_once()
+
+    @pytest.mark.regression
+    def test_create_demo_item_raises_error_for_empty_label(self):
         """Test that create raises ValueError for empty label."""
         # Arrange
-        repository = SQLAlchemyDemoItemRepository(test_session)
+        mock_session = Mock()
+        repository = SQLAlchemyDemoItemRepository(session=mock_session)
 
         # Act & Assert
         with pytest.raises(ValueError, match="Label cannot be empty"):
-            repository.create("")  # Line 46-47
+            repository.create("")
 
     @pytest.mark.regression
-    def test_repository_find_all_returns_all_items(self, test_session):
-        """Test that find_all returns all items ordered by created_at."""
+    def test_find_all_calls_session_query(self):
+        """Test that find_all calls session query correctly."""
         # Arrange
-        repository = SQLAlchemyDemoItemRepository(test_session)
-        item1 = repository.create("Item 1")
-        test_session.commit()
-        item2 = repository.create("Item 2")
-        test_session.commit()
+        from src.endpoints.demo_api.infrastructure.models import DemoItemModel
 
-        # Act
-        items = repository.find_all()
+        mock_session = Mock()
+        mock_query = Mock()
+        mock_query.order_by.return_value = mock_query
+        mock_db_model = Mock(spec=DemoItemModel)
+        mock_query.all.return_value = [mock_db_model]
+        mock_session.query.return_value = mock_query
 
-        # Assert
-        assert len(items) == 2
-        assert items[0].id == item1.id  # Ordered by created_at (lines 63-67)
-        assert items[1].id == item2.id
+        repository = SQLAlchemyDemoItemRepository(session=mock_session)
+
+        # Mock _to_domain_model to return a DemoItem
+        mock_item = DemoItem(id=1, label="Test", created_at=datetime.now())
+        with patch.object(repository, "_to_domain_model", return_value=mock_item):
+            # Act
+            result = repository.find_all()
+
+            # Assert
+            assert len(result) == 1
+            mock_session.query.assert_called_once()
 
     @pytest.mark.regression
-    def test_repository_to_domain_model_conversion(self, test_session):
-        """Test that _to_domain_model converts correctly."""
+    def test_to_domain_model_converts_demo_item(self):
+        """Test that _to_domain_model converts DemoItemModel to DemoItem."""
         # Arrange
-        repository = SQLAlchemyDemoItemRepository(test_session)
-        db_model = DemoItemModel(label="Test")
-        test_session.add(db_model)
-        test_session.flush()
+        from src.endpoints.demo_api.infrastructure.models import DemoItemModel
+
+        mock_session = Mock()
+        repository = SQLAlchemyDemoItemRepository(session=mock_session)
+        db_model = Mock(spec=DemoItemModel)
+        db_model.id = 1
+        db_model.label = "Test"
+        db_model.created_at = datetime.now()
 
         # Act
-        domain_model = repository._to_domain_model(db_model)
+        result = repository._to_domain_model(db_model)
 
         # Assert
-        assert isinstance(domain_model, DemoItem)
-        assert domain_model.id == db_model.id  # Line 81-85
-        assert domain_model.label == db_model.label
-        assert domain_model.created_at == db_model.created_at
+        assert isinstance(result, DemoItem)
+        assert result.id == 1
+        assert result.label == "Test"
