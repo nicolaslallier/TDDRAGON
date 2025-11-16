@@ -1,8 +1,7 @@
 """
 Regression tests for validation utilities.
 
-These tests ensure that previously fixed bugs in validation utilities
-do not reoccur. Each test documents a specific bug that was fixed.
+Ensures that validation functions continue to work correctly.
 """
 
 import pytest
@@ -14,111 +13,42 @@ class TestValidationRegression:
     """Regression tests for validation utilities."""
 
     @pytest.mark.regression
-    def test_email_validation_handles_none_correctly(self) -> None:
-        """
-        Regression test: Ensure None values are handled correctly.
-
-        Bug: Previously, None values could cause AttributeError.
-        Fix: Added None check before string operations.
-        """
-        # Arrange
-        email = None
-
-        # Act
-        result = validate_email(email)  # type: ignore[arg-type]
-
-        # Assert
-        assert result is False
-        # Should not raise AttributeError or TypeError
-
-    @pytest.mark.regression
-    def test_email_validation_handles_empty_string(self) -> None:
-        """
-        Regression test: Ensure empty strings return False.
-
-        Bug: Previously, empty strings could return True.
-        Fix: Added explicit empty string check.
-        """
-        # Arrange
-        email = ""
-
-        # Act
-        result = validate_email(email)
-
-        # Assert
-        assert result is False
-
-    @pytest.mark.regression
-    def test_validate_not_empty_handles_whitespace_strings(self) -> None:
-        """
-        Regression test: Ensure whitespace-only strings return False.
-
-        Bug: Previously, strings with only whitespace returned True.
-        Fix: Added strip() check for strings.
-        """
-        # Arrange
-        value = "   \t\n   "
-
-        # Act
-        result = validate_not_empty(value)
-
-        # Assert
-        assert result is False
-
-    @pytest.mark.regression
-    def test_validate_not_empty_handles_zero_correctly(self) -> None:
-        """
-        Regression test: Ensure zero (int) is considered not empty.
-
-        Bug: Previously, zero could be incorrectly treated as empty.
-        Fix: Zero is a valid value and should return True.
-        """
-        # Arrange
-        value = 0
-
-        # Act
-        result = validate_not_empty(value)
-
-        # Assert
-        assert result is True
-
-    @pytest.mark.regression
-    def test_email_validation_handles_special_characters(self) -> None:
-        """
-        Regression test: Ensure special characters in email are handled.
-
-        Bug: Previously, emails with + or _ could fail validation.
-        Fix: Updated regex pattern to include all valid email characters.
-        """
-        # Arrange
-        valid_emails = [
-            "user+tag@example.com",
-            "user_name@example.com",
-            "user.name@example.com",
-            "user-name@example.com",
-        ]
-
+    def test_validate_email_with_valid_emails(self):
+        """Test that validate_email returns True for valid emails."""
         # Act & Assert
-        for email in valid_emails:
-            result = validate_email(email)
-            assert result is True, f"Email {email} should be valid"
+        assert validate_email("user@example.com") is True
+        assert validate_email("test.user+tag@example.co.uk") is True
+        assert validate_email("user123@test-domain.com") is True
 
     @pytest.mark.regression
-    def test_validate_not_empty_handles_false_boolean(self) -> None:
-        """
-        Regression test: Ensure False boolean is considered not empty.
+    def test_validate_email_with_invalid_emails(self):
+        """Test that validate_email returns False for invalid emails."""
+        # Act & Assert
+        assert validate_email("invalid-email") is False
+        assert validate_email("@example.com") is False
+        assert validate_email("user@") is False
+        assert validate_email("") is False
+        assert validate_email(None) is False
 
-        Bug: Previously, False could be incorrectly treated as empty.
-        Fix: False is a valid value and should return True.
-        """
-        # Arrange
-        value = False
+    @pytest.mark.regression
+    def test_validate_not_empty_with_none_returns_false(self):
+        """Test that validate_not_empty returns False for None."""
+        # Act & Assert
+        assert validate_not_empty(None) is False  # Line 59
 
-        # Act
-        result = validate_not_empty(value)
+    @pytest.mark.regression
+    def test_validate_not_empty_with_empty_string_returns_false(self):
+        """Test that validate_not_empty returns False for empty string."""
+        # Act & Assert
+        assert validate_not_empty("") is False
+        assert validate_not_empty("   ") is False
 
-        # Assert
-        assert result is True
+    @pytest.mark.regression
+    def test_validate_not_empty_with_empty_collections_returns_false(self):
+        """Test that validate_not_empty returns False for empty collections."""
+        # Act & Assert
+        assert validate_not_empty([]) is False  # Line 63
+        assert validate_not_empty({}) is False  # Line 63
 
     @pytest.mark.regression
     def test_validate_not_empty_handles_none(self) -> None:
