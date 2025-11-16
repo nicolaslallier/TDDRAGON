@@ -26,4 +26,3 @@ class ValidationError(Exception):
         """
         super().__init__(message)
         self.message = message
-
